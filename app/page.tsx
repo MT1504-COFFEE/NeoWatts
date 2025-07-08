@@ -32,7 +32,7 @@ export default function Home() {
               </svg>
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-800">Dashboard Energía Renovable</h1>
+              <h1 className="text-3xl font-bold text-gray-800">NeoWatts</h1>
               <p className="text-gray-600">Análisis histórico de datos energéticos (1965-2022)</p>
             </div>
           </div>
