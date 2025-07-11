@@ -1,0 +1,162 @@
+Entity,Code,Year,Geothermal Capacity
+Chile,CHL,1990,0.0
+Chile,CHL,1995,0.0
+Chile,CHL,2000,0.0
+Chile,CHL,2001,0.0
+Chile,CHL,2002,0.0
+Chile,CHL,2003,0.0
+Chile,CHL,2004,0.0
+Chile,CHL,2005,0.0
+Chile,CHL,2006,0.0
+Chile,CHL,2007,0.0
+Chile,CHL,2008,0.0
+Chile,CHL,2009,0.0
+Chile,CHL,2010,0.0
+Chile,CHL,2011,0.0
+Chile,CHL,2012,0.0
+Chile,CHL,2013,0.0
+Chile,CHL,2014,0.0
+Chile,CHL,2015,0.0
+Chile,CHL,2016,0.0
+Chile,CHL,2017,24.0
+Chile,CHL,2018,48.0
+Chile,CHL,2019,39.7
+Chile,CHL,2020,40.0
+Costa Rica,CRI,1990,0.0
+Costa Rica,CRI,1995,55.0
+Costa Rica,CRI,2000,145.0
+Costa Rica,CRI,2001,145.0
+Costa Rica,CRI,2002,144.7
+Costa Rica,CRI,2003,162.7
+Costa Rica,CRI,2004,165.7
+Costa Rica,CRI,2005,165.7
+Costa Rica,CRI,2006,165.7
+Costa Rica,CRI,2007,165.7
+Costa Rica,CRI,2008,165.7
+Costa Rica,CRI,2009,165.7
+Costa Rica,CRI,2010,165.7
+Costa Rica,CRI,2011,217.5
+Costa Rica,CRI,2012,217.5
+Costa Rica,CRI,2013,217.5
+Costa Rica,CRI,2014,217.5
+Costa Rica,CRI,2015,217.36
+Costa Rica,CRI,2016,206.86
+Costa Rica,CRI,2017,206.86
+Costa Rica,CRI,2018,206.86
+Costa Rica,CRI,2019,261.86
+Costa Rica,CRI,2020,262.0
+El Salvador,SLV,1990,95.0
+El Salvador,SLV,1995,105.0
+El Salvador,SLV,2000,161.2
+El Salvador,SLV,2001,161.2
+El Salvador,SLV,2002,161.2
+El Salvador,SLV,2003,161.2
+El Salvador,SLV,2004,151.2
+El Salvador,SLV,2005,151.2
+El Salvador,SLV,2006,151.2
+El Salvador,SLV,2007,204.4
+El Salvador,SLV,2008,204.4
+El Salvador,SLV,2009,204.4
+El Salvador,SLV,2010,204.4
+El Salvador,SLV,2011,204.0
+El Salvador,SLV,2012,204.4
+El Salvador,SLV,2013,204.4
+El Salvador,SLV,2014,204.4
+El Salvador,SLV,2015,204.4
+El Salvador,SLV,2016,204.4
+El Salvador,SLV,2017,204.4
+El Salvador,SLV,2018,204.4
+El Salvador,SLV,2019,204.4
+El Salvador,SLV,2020,204.0
+Guatemala,GTM,1990,0.0
+Guatemala,GTM,1995,0.0
+Guatemala,GTM,2000,29.0
+Guatemala,GTM,2001,29.0
+Guatemala,GTM,2002,29.0
+Guatemala,GTM,2003,29.0
+Guatemala,GTM,2004,29.0
+Guatemala,GTM,2005,29.0
+Guatemala,GTM,2006,54.2
+Guatemala,GTM,2007,54.2
+Guatemala,GTM,2008,54.2
+Guatemala,GTM,2009,54.2
+Guatemala,GTM,2010,54.2
+Guatemala,GTM,2011,54.2
+Guatemala,GTM,2012,54.2
+Guatemala,GTM,2013,49.2
+Guatemala,GTM,2014,49.2
+Guatemala,GTM,2015,49.2
+Guatemala,GTM,2016,49.2
+Guatemala,GTM,2017,49.2
+Guatemala,GTM,2018,49.2
+Guatemala,GTM,2019,52.0
+Guatemala,GTM,2020,49.0
+Honduras,HND,1990,0.0
+Honduras,HND,1995,0.0
+Honduras,HND,2000,0.0
+Honduras,HND,2001,0.0
+Honduras,HND,2002,0.0
+Honduras,HND,2003,0.0
+Honduras,HND,2004,0.0
+Honduras,HND,2005,0.0
+Honduras,HND,2006,0.0
+Honduras,HND,2007,0.0
+Honduras,HND,2008,0.0
+Honduras,HND,2009,0.0
+Honduras,HND,2010,0.0
+Honduras,HND,2011,0.0
+Honduras,HND,2012,0.0
+Honduras,HND,2013,0.0
+Honduras,HND,2014,0.0
+Honduras,HND,2015,0.0
+Honduras,HND,2016,0.0
+Honduras,HND,2017,35.0
+Honduras,HND,2018,35.0
+Honduras,HND,2019,35.0
+Honduras,HND,2020,39.0
+Mexico,MEX,1990,743.0
+Mexico,MEX,1995,743.0
+Mexico,MEX,2000,855.0
+Mexico,MEX,2001,838.0
+Mexico,MEX,2002,843.0
+Mexico,MEX,2003,960.0
+Mexico,MEX,2004,960.0
+Mexico,MEX,2005,960.0
+Mexico,MEX,2006,960.0
+Mexico,MEX,2007,960.0
+Mexico,MEX,2008,963.0
+Mexico,MEX,2009,965.0
+Mexico,MEX,2010,965.0
+Mexico,MEX,2011,887.0
+Mexico,MEX,2012,824.0
+Mexico,MEX,2013,823.0
+Mexico,MEX,2014,813.0
+Mexico,MEX,2015,906.0
+Mexico,MEX,2016,926.0
+Mexico,MEX,2017,925.7
+Mexico,MEX,2018,950.6
+Mexico,MEX,2019,935.6
+Mexico,MEX,2020,906.0
+Nicaragua,NIC,1990,35.0
+Nicaragua,NIC,1995,70.0
+Nicaragua,NIC,2000,21.0
+Nicaragua,NIC,2001,26.0
+Nicaragua,NIC,2002,77.5
+Nicaragua,NIC,2003,77.5
+Nicaragua,NIC,2004,77.5
+Nicaragua,NIC,2005,87.5
+Nicaragua,NIC,2006,87.5
+Nicaragua,NIC,2007,87.5
+Nicaragua,NIC,2008,87.5
+Nicaragua,NIC,2009,87.5
+Nicaragua,NIC,2010,87.5
+Nicaragua,NIC,2011,87.5
+Nicaragua,NIC,2012,164.5
+Nicaragua,NIC,2013,154.5
+Nicaragua,NIC,2014,154.5
+Nicaragua,NIC,2015,154.5
+Nicaragua,NIC,2016,154.5
+Nicaragua,NIC,2017,154.5
+Nicaragua,NIC,2018,154.5
+Nicaragua,NIC,2019,153.24
+Nicaragua,NIC,2020,153.0
