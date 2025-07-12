@@ -72,7 +72,7 @@ export default function DataUploader({ onDataLoad }: DataUploaderProps) {
           <CardDescription>Selecciona uno de los conjuntos de datos reales para comenzar el análisis
             <br />
             <br />
-            Los conjuntos de datos estaran disponibles en el apartado (Cargar datos)
+            Los conjuntos de datos estaran disponibles en el apartado (Tabla de Datos) una vez que se carguen.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
