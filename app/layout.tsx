@@ -5,6 +5,9 @@ export const metadata: Metadata = {
   title: 'NeoWatts',
   description: 'Created with Next.js',
   generator: 'Next.js',
+  icons: {
+    icon: '/favicon.png',
+  },
 }
 
 export default function RootLayout({
