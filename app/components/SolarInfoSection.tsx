@@ -2,6 +2,8 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import CarruselEnergias from '../data/CarruselEnergias'
+
 
 export default function SolarInfoSection() {
   const benefits = [
@@ -60,7 +62,9 @@ export default function SolarInfoSection() {
           </div>
         </div>
       </div>
-
+     {/* Carrusel de energías renovables */}
+      <CarruselEnergias />
+      
       {/* Benefits Section */}
       <div>
         <h3 className="text-3xl font-bold text-gray-800 mb-6 text-center">Beneficios de la Energía Solar</h3>
