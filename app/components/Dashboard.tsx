@@ -18,8 +18,10 @@ import {
   Cell,
   LineChart,
   Line,
+  AreaChart,
+  Area,
 } from "recharts"
-import { loadChartData, loadPieChartData, loadLineChartData } from "../data/chartDatasets"
+import { loadChartData, loadPieChartData, loadLineChartData, loadAreaChartData } from "../data/chartDatasets"
 import type { RenewableEnergyData } from "../types/energy"
 
 interface DashboardProps {
@@ -82,6 +84,11 @@ export default function Dashboard({ data }: DashboardProps) {
         const lineData = await loadLineChartData()
         console.log("✅ Datos del gráfico de líneas cargados:", lineData)
         setChartData((prev) => ({ ...prev, [chartType]: lineData }))
+      } else if (chartType === "areaChart") {
+        console.log("📊 Iniciando carga del gráfico de área...")
+        const areaData = await loadAreaChartData()
+        console.log("✅ Datos del gráfico de área cargados:", areaData)
+        setChartData((prev) => ({ ...prev, [chartType]: areaData }))
       } else if (fileId) {
         const data = await loadChartData(fileId)
         setChartData((prev) => ({ ...prev, [chartType]: data }))
@@ -192,7 +199,7 @@ export default function Dashboard({ data }: DashboardProps) {
             <Button
               onClick={() => loadSpecificChartData("pieChart")}
               disabled={loading.pieChart}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-green-600 hover:bg-green-700"
             >
               {loading.pieChart ? "Procesando 5 archivos..." : "Cargar Participación"}
             </Button>
@@ -357,7 +364,7 @@ export default function Dashboard({ data }: DashboardProps) {
             <Button
               onClick={() => loadSpecificChartData("lineChart")}
               disabled={loading.lineChart}
-              className="bg-purple-600 hover:bg-purple-700"
+              className="bg-green-600 hover:bg-green-700"
             >
               {loading.lineChart ? "Procesando 3 archivos..." : "Cargar Capacidades"}
             </Button>
@@ -466,26 +473,147 @@ export default function Dashboard({ data }: DashboardProps) {
         </CardContent>
       </Card>
 
-      {/* Gráfico de Área - Comparación entre Consumo de Energía Renovable y Convencional */}
+      {/* Gráfico de Área - Producción Moderna de Energía Renovable */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>📊 Gráfico de Área: Comparación Energía Renovable vs Convencional</CardTitle>
+              <CardTitle>📊 Gráfico de Área: Producción Moderna de Energía Renovable</CardTitle>
               <CardDescription>
-                Compara el consumo de energía renovable con el consumo de energía convencional a lo largo del tiempo
+                Evolución de la producción por fuente: Biomasa, Solar, Eólica e Hidroeléctrica (TWh)
               </CardDescription>
             </div>
-            <Button disabled className="bg-gray-400 cursor-not-allowed">
-              Próximamente
+            <Button
+              onClick={() => loadSpecificChartData("areaChart")}
+              disabled={loading.areaChart}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {loading.areaChart ? "Cargando datos..." : "Cargar Producción"}
             </Button>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-12 text-gray-500">
-            <div className="text-4xl mb-2">📊</div>
-            <p>Esperando archivo CSV para el gráfico de área</p>
-          </div>
+          {loading.areaChart && (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+              <span className="ml-3">Procesando datos de producción moderna...</span>
+            </div>
+          )}
+
+          {errors.areaChart && (
+            <Alert className="border-red-500 bg-red-50 mb-4">
+              <AlertDescription className="text-red-700">Error: {errors.areaChart}</AlertDescription>
+            </Alert>
+          )}
+
+          {chartData.areaChart.length > 0 && !loading.areaChart && (
+            <div className="space-y-4">
+              {/* Información del período */}
+              <div className="bg-orange-50 p-4 rounded-lg">
+                <div className="grid md:grid-cols-3 gap-4 text-center">
+                  <div>
+                    <div className="text-2xl font-bold text-orange-600">
+                      {Math.min(...chartData.areaChart.map((d) => d.year))} -{" "}
+                      {Math.max(...chartData.areaChart.map((d) => d.year))}
+                    </div>
+                    <div className="text-sm text-orange-700">Período Analizado</div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-orange-600">{chartData.areaChart.length}</div>
+                    <div className="text-sm text-orange-700">Años de Datos</div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-orange-600">
+                      {chartData.areaChart.reduce((sum, d) => sum + d["Total Renovable"], 0).toFixed(1)}
+                    </div>
+                    <div className="text-sm text-orange-700">TWh Total Acumulado</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Gráfico de área */}
+              <ResponsiveContainer width="100%" height={500}>
+                <AreaChart data={chartData.areaChart}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="year" />
+                  <YAxis />
+                  <Tooltip
+                    formatter={(value, name) => [`${value} TWh`, name]}
+                    labelFormatter={(label) => `Año: ${label}`}
+                  />
+                  <Legend />
+                  <Area
+                    type="monotone"
+                    dataKey="Biomasa y Otros"
+                    stackId="1"
+                    stroke="#10B981"
+                    fill="#10B981"
+                    fillOpacity={0.8}
+                  />
+                  <Area type="monotone" dataKey="Solar" stackId="1" stroke="#F59E0B" fill="#F59E0B" fillOpacity={0.8} />
+                  <Area
+                    type="monotone"
+                    dataKey="Eólica"
+                    stackId="1"
+                    stroke="#3B82F6"
+                    fill="#3B82F6"
+                    fillOpacity={0.8}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="Hidroeléctrica"
+                    stackId="1"
+                    stroke="#06B6D4"
+                    fill="#06B6D4"
+                    fillOpacity={0.8}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+
+              {/* Resumen de totales por fuente */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h4 className="font-semibold mb-3">📊 Totales por Fuente Energética</h4>
+                <div className="grid md:grid-cols-4 gap-4">
+                  <div className="bg-white p-3 rounded border-l-4 border-green-500">
+                    <div className="font-medium text-green-700">Biomasa y Otros</div>
+                    <div className="text-2xl font-bold text-green-600">
+                      {chartData.areaChart.reduce((sum, d) => sum + d["Biomasa y Otros"], 0).toFixed(1)} TWh
+                    </div>
+                    <div className="text-sm text-gray-600">Total histórico</div>
+                  </div>
+                  <div className="bg-white p-3 rounded border-l-4 border-yellow-500">
+                    <div className="font-medium text-yellow-700">Solar</div>
+                    <div className="text-2xl font-bold text-yellow-600">
+                      {chartData.areaChart.reduce((sum, d) => sum + d["Solar"], 0).toFixed(1)} TWh
+                    </div>
+                    <div className="text-sm text-gray-600">Total histórico</div>
+                  </div>
+                  <div className="bg-white p-3 rounded border-l-4 border-blue-500">
+                    <div className="font-medium text-blue-700">Eólica</div>
+                    <div className="text-2xl font-bold text-blue-600">
+                      {chartData.areaChart.reduce((sum, d) => sum + d["Eólica"], 0).toFixed(1)} TWh
+                    </div>
+                    <div className="text-sm text-gray-600">Total histórico</div>
+                  </div>
+                  <div className="bg-white p-3 rounded border-l-4 border-cyan-500">
+                    <div className="font-medium text-cyan-700">Hidroeléctrica</div>
+                    <div className="text-2xl font-bold text-cyan-600">
+                      {chartData.areaChart.reduce((sum, d) => sum + d["Hidroeléctrica"], 0).toFixed(1)} TWh
+                    </div>
+                    <div className="text-sm text-gray-600">Total histórico</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {chartData.areaChart.length === 0 && !loading.areaChart && !errors.areaChart && (
+            <div className="text-center py-12 text-gray-500">
+              <div className="text-4xl mb-2">📊</div>
+              <p>Haz clic en "Cargar Producción" para ver la evolución de producción moderna</p>
+              <p className="text-sm mt-2">Se procesarán datos de Biomasa, Solar, Eólica e Hidroeléctrica</p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

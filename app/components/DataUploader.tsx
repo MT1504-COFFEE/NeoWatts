@@ -69,7 +69,11 @@ export default function DataUploader({ onDataLoad }: DataUploaderProps) {
             <span>📁</span>
             <span>Datasets de Energía Renovable</span>
           </CardTitle>
-          <CardDescription>Selecciona uno de los conjuntos de datos reales para comenzar el análisis</CardDescription>
+          <CardDescription>Selecciona uno de los conjuntos de datos reales para comenzar el análisis
+            <br />
+            <br />
+            Los conjuntos de datos estaran disponibles en el apartado (Cargar datos)
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Lista de archivos predefinidos */}
@@ -178,6 +182,27 @@ export default function DataUploader({ onDataLoad }: DataUploaderProps) {
                   <p>
                     Producción de electricidad por fuente renovable (eólica, hidroeléctrica, solar, bioenergía) en
                     países de América Latina. Más de 8,200 registros históricos.
+                  </p>
+                </div>
+                <div>
+                  <strong>Participación Eólica LATAM:</strong>
+                  <p>
+                    Datos históricos del porcentaje de energía eólica en el mix energético de países latinoamericanos.
+                    Más de 5,800 registros.
+                  </p>
+                </div>
+                <div>
+                  <strong>Participación Hidroeléctrica LATAM:</strong>
+                  <p>
+                    Datos históricos del porcentaje de energía hidroeléctrica en el mix energético de países
+                    latinoamericanos. Más de 6,500 registros.
+                  </p>
+                </div>
+                <div>
+                  <strong>Participación Total Renovable LATAM:</strong>
+                  <p>
+                    Datos históricos del porcentaje total de energía renovable en el mix energético de países
+                    latinoamericanos. Más de 7,200 registros.
                   </p>
                 </div>
                 <div className="mt-4 p-3 bg-white rounded border-l-4 border-blue-500">

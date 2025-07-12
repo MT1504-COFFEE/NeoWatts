@@ -22,15 +22,7 @@ export default function Home() {
       <header className="bg-white shadow-lg border-b-4 border-green-500">
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center">
-              <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                <path
-                  fillRule="evenodd"
-                  d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </div>
+            <img src="/favicon.png" alt="NeoWatts Logo" className="h-12 w-12 rounded-full" />
             <div>
               <h1 className="text-3xl font-bold text-gray-800">NeoWatts</h1>
               <p className="text-gray-600">Análisis histórico de datos energéticos (1965-2022)</p>
@@ -44,7 +36,7 @@ export default function Home() {
         <Tabs defaultValue="info" className="space-y-6">
           <TabsList className="grid w-full grid-cols-5 bg-white shadow-md">
             <TabsTrigger value="info" className="data-[state=active]:bg-green-500 data-[state=active]:text-white">
-              Información Solar
+              Información General
             </TabsTrigger>
             <TabsTrigger value="upload" className="data-[state=active]:bg-green-500 data-[state=active]:text-white">
               Cargar Datos

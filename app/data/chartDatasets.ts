@@ -419,6 +419,83 @@ export async function processLineChartData() {
   }
 }
 
+// Función para procesar datos del gráfico de área - NUEVA
+export async function processAreaChartData() {
+  try {
+    console.log("📊 Iniciando carga de archivo para gráfico de área...")
+
+    // Cargar el archivo de producción moderna
+    const response = await fetch(
+      "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/03%20modern-renewable-prod-rpEGVBzJJr72m98bACpzTFmpbmD1VO.csv",
+    )
+    if (!response.ok) {
+      throw new Error(`Error al cargar archivo: ${response.status}`)
+    }
+
+    const csvText = await response.text()
+    const rawData = parseChartCSV(csvText)
+
+    console.log("📊 Datos cargados:", rawData.length, "registros")
+
+    // Agrupar por año y calcular totales
+    const yearlyData = rawData.reduce(
+      (acc, item) => {
+        if (!acc[item.Year]) {
+          acc[item.Year] = {
+            year: item.Year,
+            biomass: 0,
+            solar: 0,
+            wind: 0,
+            hydro: 0,
+            count: 0,
+          }
+        }
+
+        const biomass = Number.parseFloat(item["Geo Biomass Other - TWh"]) || 0
+        const solar = Number.parseFloat(item["Solar Generation - TWh"]) || 0
+        const wind = Number.parseFloat(item["Wind Generation - TWh"]) || 0
+        const hydro = Number.parseFloat(item["Hydro Generation - TWh"]) || 0
+
+        acc[item.Year].biomass += biomass
+        acc[item.Year].solar += solar
+        acc[item.Year].wind += wind
+        acc[item.Year].hydro += hydro
+        acc[item.Year].count += 1
+
+        return acc
+      },
+      {} as Record<number, any>,
+    )
+
+    // Convertir a array y calcular promedios
+    const areaData = Object.values(yearlyData)
+      .map((item: any) => ({
+        year: item.year,
+        "Biomasa y Otros": Number((item.biomass / item.count).toFixed(2)),
+        Solar: Number((item.solar / item.count).toFixed(2)),
+        Eólica: Number((item.wind / item.count).toFixed(2)),
+        Hidroeléctrica: Number((item.hydro / item.count).toFixed(2)),
+        "Total Renovable": Number(((item.biomass + item.solar + item.wind + item.hydro) / item.count).toFixed(2)),
+      }))
+      .sort((a, b) => a.year - b.year)
+
+    console.log("📊 Datos procesados del gráfico de área:", {
+      totalYears: areaData.length,
+      sampleData: areaData.slice(-5), // Últimos 5 años como muestra
+    })
+
+    return areaData
+  } catch (error) {
+    console.error("❌ Error procesando datos del gráfico de área:", error)
+    throw error
+  }
+}
+
+// Función especial para cargar datos del gráfico de área
+export async function loadAreaChartData(): Promise<any[]> {
+  return await processAreaChartData()
+}
+
 // Función auxiliar para cargar un archivo individual
 async function loadSingleChartFile(fileId: string): Promise<any[]> {
   const file = chartDataFiles.find((f) => f.id === fileId)
