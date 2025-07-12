@@ -104,3 +104,26 @@ export interface ChartDataFile {
   url: string
   schema: string[]
 }
+
+// Agrega estas interfaces a tu archivo energy.ts
+
+export interface WindShareData {
+  Entity: string
+  Code: string
+  Year: number
+  "Wind (% equivalent primary energy)": number
+}
+
+export interface HydroShareData {
+  Entity: string
+  Code: string
+  Year: number
+  "Hydro (% equivalent primary energy)": number
+}
+
+export interface RenewableShareData {
+  Entity: string
+  Code: string
+  Year: number
+  "Renewables (% equivalent primary energy)": number
+}
