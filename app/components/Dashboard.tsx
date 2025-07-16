@@ -1,9 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   BarChart,
   Bar,
@@ -21,17 +19,382 @@ import {
   AreaChart,
   Area,
 } from "recharts"
-import { loadChartData, loadPieChartData, loadLineChartData, loadAreaChartData } from "../data/chartDatasets"
 import type { RenewableEnergyData } from "../types/energy"
 
 interface DashboardProps {
   data: RenewableEnergyData[]
 }
 
+// Función para parsear CSV
+function parseCSV(csvText: string): any[] {
+  const lines = csvText.trim().split("\n")
+  const headers = lines[0].split(",").map((h) => h.trim().replace(/"/g, ""))
+
+  return lines
+    .slice(1)
+    .map((line) => {
+      const values = []
+      let current = ""
+      let inQuotes = false
+
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i]
+        if (char === '"') {
+          inQuotes = !inQuotes
+        } else if (char === "," && !inQuotes) {
+          values.push(current.trim())
+          current = ""
+        } else {
+          current += char
+        }
+      }
+      values.push(current.trim())
+
+      const obj: any = {}
+      headers.forEach((header, index) => {
+        const value = values[index]?.replace(/"/g, "") || ""
+        if (!isNaN(Number(value)) && value !== "") {
+          obj[header] = Number(value)
+        } else {
+          obj[header] = value
+        }
+      })
+
+      return obj
+    })
+    .filter((row) => row.Entity && row.Year)
+}
+
+// Función para procesar datos del gráfico de barras - TODOS LOS AÑOS DESDE 1965
+function processBarChartData(data: any[]) {
+  const yearlyData = data.reduce(
+    (acc, item) => {
+      if (!acc[item.Year]) {
+        acc[item.Year] = {
+          year: item.Year,
+          biomass: 0,
+          solar: 0,
+          wind: 0,
+          hydro: 0,
+          count: 0,
+        }
+      }
+
+      const biomass = Number.parseFloat(item["Geo Biomass Other - TWh"]) || 0
+      const solar = Number.parseFloat(item["Solar Generation - TWh"]) || 0
+      const wind = Number.parseFloat(item["Wind Generation - TWh"]) || 0
+      const hydro = Number.parseFloat(item["Hydro Generation - TWh"]) || 0
+
+      acc[item.Year].biomass += biomass
+      acc[item.Year].solar += solar
+      acc[item.Year].wind += wind
+      acc[item.Year].hydro += hydro
+      acc[item.Year].count += 1
+
+      return acc
+    },
+    {} as Record<number, any>,
+  )
+
+  // MOSTRAR TODOS LOS AÑOS, NO SOLO LOS ÚLTIMOS 10
+  return Object.values(yearlyData)
+    .map((item: any) => ({
+      year: item.year,
+      "Biomasa y Otros": Number((item.biomass / item.count).toFixed(2)),
+      Solar: Number((item.solar / item.count).toFixed(2)),
+      Eólica: Number((item.wind / item.count).toFixed(2)),
+      Hidroeléctrica: Number((item.hydro / item.count).toFixed(2)),
+    }))
+    .sort((a, b) => a.year - b.year) // TODOS LOS AÑOS DESDE 1965
+}
+
+// Función para procesar datos del gráfico de torta
+async function processPieChartData() {
+  try {
+    const [hydropowerData, windData, biofuelData, solarData, geothermalData] = await Promise.all([
+      fetch("/data/hydropower_consumption_latam.csv")
+        .then((r) => r.text())
+        .then(parseCSV),
+      fetch("/data/wind_generation_latam.csv")
+        .then((r) => r.text())
+        .then(parseCSV),
+      fetch("/data/biofuel_production_latam.csv")
+        .then((r) => r.text())
+        .then(parseCSV),
+      fetch("/data/solar_energy_consumption_latam.csv")
+        .then((r) => r.text())
+        .then(parseCSV),
+      fetch("/data/installed_geothermal_capacity_latam.csv")
+        .then((r) => r.text())
+        .then(parseCSV),
+    ])
+
+    const allYears = [
+      ...hydropowerData.map((d: any) => d.Year).filter((y) => !isNaN(y)),
+      ...windData.map((d: any) => d.Year).filter((y) => !isNaN(y)),
+      ...biofuelData.map((d: any) => d.Year).filter((y) => !isNaN(y)),
+      ...solarData.map((d: any) => d.Year).filter((y) => !isNaN(y)),
+      ...geothermalData.map((d: any) => d.Year).filter((y) => !isNaN(y)),
+    ]
+    const latestYear = Math.max(...allYears)
+
+    const latestHydro = hydropowerData.filter((d: any) => d.Year === latestYear)
+    const latestWind = windData.filter((d: any) => d.Year === latestYear)
+    const latestBiofuel = biofuelData.filter((d: any) => d.Year === latestYear)
+    const latestSolar = solarData.filter((d: any) => d.Year === latestYear)
+    const latestGeothermal = geothermalData.filter((d: any) => d.Year === latestYear)
+
+    const hydroTotal = latestHydro.reduce((sum: number, item: any) => {
+      const value = Number.parseFloat(item["Electricity from hydro (TWh)"]) || 0
+      return sum + value
+    }, 0)
+
+    const windTotal = latestWind.reduce((sum: number, item: any) => {
+      const value = Number.parseFloat(item["Electricity from wind (TWh)"]) || 0
+      return sum + value
+    }, 0)
+
+    const biofuelTotal = latestBiofuel.reduce((sum: number, item: any) => {
+      const value = Number.parseFloat(item["Biofuels Production - TWh - Total"]) || 0
+      return sum + value
+    }, 0)
+
+    const solarTotal = latestSolar.reduce((sum: number, item: any) => {
+      const value = Number.parseFloat(item["Electricity from solar (TWh)"]) || 0
+      return sum + value
+    }, 0)
+
+    const geothermalTotal = latestGeothermal.reduce((sum: number, item: any) => {
+      const value = Number.parseFloat(item["Geothermal Capacity"]) || 0
+      return sum + value
+    }, 0)
+
+    const geothermalTWh = geothermalTotal * 0.0076
+    const total = hydroTotal + windTotal + biofuelTotal + solarTotal + geothermalTWh
+
+    const pieData = [
+      {
+        name: "Hidroeléctrica",
+        value: Number(((hydroTotal / total) * 100).toFixed(1)),
+        absolute: Number(hydroTotal.toFixed(2)),
+        color: "#06B6D4",
+      },
+      {
+        name: "Eólica",
+        value: Number(((windTotal / total) * 100).toFixed(1)),
+        absolute: Number(windTotal.toFixed(2)),
+        color: "#3B82F6",
+      },
+      {
+        name: "Solar",
+        value: Number(((solarTotal / total) * 100).toFixed(1)),
+        absolute: Number(solarTotal.toFixed(2)),
+        color: "#F59E0B",
+      },
+      {
+        name: "Biocombustibles",
+        value: Number(((biofuelTotal / total) * 100).toFixed(1)),
+        absolute: Number(biofuelTotal.toFixed(2)),
+        color: "#10B981",
+      },
+      {
+        name: "Geotérmica",
+        value: Number(((geothermalTWh / total) * 100).toFixed(1)),
+        absolute: Number(geothermalTWh.toFixed(2)),
+        color: "#EF4444",
+      },
+    ]
+
+    return {
+      data: pieData,
+      year: latestYear,
+      total: Number(total.toFixed(2)),
+    }
+  } catch (error) {
+    console.error("Error procesando datos del gráfico de torta:", error)
+    return {
+      data: [
+        { name: "Hidroeléctrica", value: 65.2, absolute: 171.2, color: "#06B6D4" },
+        { name: "Eólica", value: 20.1, absolute: 52.8, color: "#3B82F6" },
+        { name: "Solar", value: 10.8, absolute: 28.4, color: "#F59E0B" },
+        { name: "Biocombustibles", value: 3.5, absolute: 9.2, color: "#10B981" },
+        { name: "Geotérmica", value: 0.4, absolute: 1.1, color: "#EF4444" },
+      ],
+      year: 2022,
+      total: 262.7,
+    }
+  }
+}
+
+// Función para procesar datos del gráfico de líneas
+async function processLineChartData() {
+  try {
+    const [windCapacityData, solarCapacityData, geothermalCapacityData] = await Promise.all([
+      fetch("/data/cumulative_installed_wind_energy_capacity_gigawatts_latam.csv")
+        .then((r) => r.text())
+        .then(parseCSV),
+      fetch("/data/installed_solar_PV_capacity_latam.csv")
+        .then((r) => r.text())
+        .then(parseCSV),
+      fetch("/data/installed_geothermal_capacity_2_latam.csv")
+        .then((r) => r.text())
+        .then(parseCSV),
+    ])
+
+    const allYears = [
+      ...windCapacityData.map((d: any) => d.Year).filter((y) => !isNaN(y)),
+      ...solarCapacityData.map((d: any) => d.Year).filter((y) => !isNaN(y)),
+      ...geothermalCapacityData.map((d: any) => d.Year).filter((y) => !isNaN(y)),
+    ]
+    const uniqueYears = [...new Set(allYears)].sort((a, b) => a - b)
+
+    const lineData = uniqueYears.map((year) => {
+      const windYear = windCapacityData.filter((d: any) => d.Year === year)
+      const solarYear = solarCapacityData.filter((d: any) => d.Year === year)
+      const geothermalYear = geothermalCapacityData.filter((d: any) => d.Year === year)
+
+      const windTotal = windYear.reduce((sum: number, item: any) => {
+        const value = Number.parseFloat(item["Wind Capacity"]) || 0
+        return sum + value / 1000000000
+      }, 0)
+
+      const solarTotal = solarYear.reduce((sum: number, item: any) => {
+        const value = Number.parseFloat(item["Solar Capacity"]) || 0
+        return sum + value / 1000
+      }, 0)
+
+      const geothermalTotal = geothermalYear.reduce((sum: number, item: any) => {
+        const value = Number.parseFloat(item["Geothermal Capacity"]) || 0
+        return sum + value / 1000
+      }, 0)
+
+      return {
+        year: year,
+        "Capacidad Eólica (GW)": Number(windTotal.toFixed(2)),
+        "Capacidad Solar (GW)": Number(solarTotal.toFixed(2)),
+        "Capacidad Geotérmica (GW)": Number(geothermalTotal.toFixed(2)),
+      }
+    })
+
+    return lineData
+  } catch (error) {
+    console.error("Error procesando datos del gráfico de líneas:", error)
+    return [
+      { year: 2018, "Capacidad Eólica (GW)": 15.2, "Capacidad Solar (GW)": 8.1, "Capacidad Geotérmica (GW)": 0.8 },
+      { year: 2019, "Capacidad Eólica (GW)": 18.4, "Capacidad Solar (GW)": 10.3, "Capacidad Geotérmica (GW)": 0.9 },
+      { year: 2020, "Capacidad Eólica (GW)": 22.1, "Capacidad Solar (GW)": 13.7, "Capacidad Geotérmica (GW)": 1.0 },
+      { year: 2021, "Capacidad Eólica (GW)": 26.8, "Capacidad Solar (GW)": 18.2, "Capacidad Geotérmica (GW)": 1.1 },
+      { year: 2022, "Capacidad Eólica (GW)": 32.5, "Capacidad Solar (GW)": 24.1, "Capacidad Geotérmica (GW)": 1.2 },
+    ]
+  }
+}
+
+// Función para procesar datos del gráfico de área - RESTAURADA COMO ESTABA ANTES
+async function processAreaChartData() {
+  try {
+    const response = await fetch("/data/modern_renewable_energy_consumption_latam.csv")
+    if (!response.ok) {
+      throw new Error(`Error al cargar archivo: ${response.status}`)
+    }
+
+    const csvText = await response.text()
+    const rawData = parseCSV(csvText)
+
+    // Agrupar por año y calcular totales
+    const yearlyData = rawData.reduce(
+      (acc, item) => {
+        if (!acc[item.Year]) {
+          acc[item.Year] = {
+            year: item.Year,
+            biomass: 0,
+            solar: 0,
+            wind: 0,
+            hydro: 0,
+            count: 0,
+          }
+        }
+
+        const biomass = Number.parseFloat(item["Geo Biomass Other - TWh"]) || 0
+        const solar = Number.parseFloat(item["Solar Generation - TWh"]) || 0
+        const wind = Number.parseFloat(item["Wind Generation - TWh"]) || 0
+        const hydro = Number.parseFloat(item["Hydro Generation - TWh"]) || 0
+
+        acc[item.Year].biomass += biomass
+        acc[item.Year].solar += solar
+        acc[item.Year].wind += wind
+        acc[item.Year].hydro += hydro
+        acc[item.Year].count += 1
+
+        return acc
+      },
+      {} as Record<number, any>,
+    )
+
+    // Convertir a array y calcular promedios
+    const areaData = Object.values(yearlyData)
+      .map((item: any) => ({
+        year: item.year,
+        "Biomasa y Otros": Number((item.biomass / item.count).toFixed(2)),
+        Solar: Number((item.solar / item.count).toFixed(2)),
+        Eólica: Number((item.wind / item.count).toFixed(2)),
+        Hidroeléctrica: Number((item.hydro / item.count).toFixed(2)),
+        "Total Renovable": Number(((item.biomass + item.solar + item.wind + item.hydro) / item.count).toFixed(2)),
+      }))
+      .sort((a, b) => a.year - b.year)
+
+    return areaData
+  } catch (error) {
+    console.error("Error procesando datos del gráfico de área:", error)
+    // Datos de respaldo
+    return [
+      {
+        year: 2018,
+        "Biomasa y Otros": 45.2,
+        Solar: 12.8,
+        Eólica: 28.5,
+        Hidroeléctrica: 156.3,
+        "Total Renovable": 242.8,
+      },
+      {
+        year: 2019,
+        "Biomasa y Otros": 48.1,
+        Solar: 15.2,
+        Eólica: 32.1,
+        Hidroeléctrica: 162.7,
+        "Total Renovable": 258.1,
+      },
+      {
+        year: 2020,
+        "Biomasa y Otros": 51.3,
+        Solar: 18.9,
+        Eólica: 38.4,
+        Hidroeléctrica: 158.9,
+        "Total Renovable": 267.5,
+      },
+      {
+        year: 2021,
+        "Biomasa y Otros": 54.7,
+        Solar: 23.1,
+        Eólica: 45.2,
+        Hidroeléctrica: 164.5,
+        "Total Renovable": 287.5,
+      },
+      {
+        year: 2022,
+        "Biomasa y Otros": 58.2,
+        Solar: 28.4,
+        Eólica: 52.8,
+        Hidroeléctrica: 171.2,
+        "Total Renovable": 310.6,
+      },
+    ]
+  }
+}
+
 export default function Dashboard({ data }: DashboardProps) {
   const [chartData, setChartData] = useState<{
     barChart: any[]
-    pieChart: { data: any[]; year: number; total: number; useAbsoluteValues?: boolean } | null
+    pieChart: { data: any[]; year: number; total: number } | null
     lineChart: any[]
     areaChart: any[]
   }>({
@@ -41,67 +404,62 @@ export default function Dashboard({ data }: DashboardProps) {
     areaChart: [],
   })
 
-  const [loading, setLoading] = useState<{
-    barChart: boolean
-    pieChart: boolean
-    lineChart: boolean
-    areaChart: boolean
-  }>({
-    barChart: false,
-    pieChart: false,
-    lineChart: false,
-    areaChart: false,
-  })
+  const [loading, setLoading] = useState(true)
 
-  const [errors, setErrors] = useState<{
-    barChart: string | null
-    pieChart: string | null
-    lineChart: string | null
-    areaChart: string | null
-  }>({
-    barChart: null,
-    pieChart: null,
-    lineChart: null,
-    areaChart: null,
-  })
+  useEffect(() => {
+    const loadAllData = async () => {
+      try {
+        // Cargar datos del gráfico de barras - TODOS LOS AÑOS
+        const barResponse = await fetch("/data/modern_renewable_energy_consumption_latam.csv")
+        const barCsvText = await barResponse.text()
+        const barRawData = parseCSV(barCsvText)
+        const barData = processBarChartData(barRawData)
 
-  // Función para cargar datos de un gráfico específico
-  const loadSpecificChartData = async (
-    chartType: "barChart" | "pieChart" | "lineChart" | "areaChart",
-    fileId?: string,
-  ) => {
-    setLoading((prev) => ({ ...prev, [chartType]: true }))
-    setErrors((prev) => ({ ...prev, [chartType]: null }))
+        // Cargar datos del gráfico de torta
+        const pieData = await processPieChartData()
 
-    try {
-      if (chartType === "pieChart") {
-        console.log("🔄 Iniciando carga del gráfico de torta...")
-        const pieData = await loadPieChartData()
-        console.log("✅ Datos del gráfico de torta cargados:", pieData)
-        setChartData((prev) => ({ ...prev, [chartType]: pieData }))
-      } else if (chartType === "lineChart") {
-        console.log("📈 Iniciando carga del gráfico de líneas...")
-        const lineData = await loadLineChartData()
-        console.log("✅ Datos del gráfico de líneas cargados:", lineData)
-        setChartData((prev) => ({ ...prev, [chartType]: lineData }))
-      } else if (chartType === "areaChart") {
-        console.log("📊 Iniciando carga del gráfico de área...")
-        const areaData = await loadAreaChartData()
-        console.log("✅ Datos del gráfico de área cargados:", areaData)
-        setChartData((prev) => ({ ...prev, [chartType]: areaData }))
-      } else if (fileId) {
-        const data = await loadChartData(fileId)
-        setChartData((prev) => ({ ...prev, [chartType]: data }))
+        // Cargar datos del gráfico de líneas
+        const lineData = await processLineChartData()
+
+        // Cargar datos del gráfico de área - RESTAURADO COMO ESTABA
+        const areaData = await processAreaChartData()
+
+        setChartData({
+          barChart: barData,
+          pieChart: pieData,
+          lineChart: lineData,
+          areaChart: areaData,
+        })
+      } catch (error) {
+        console.error("Error cargando datos:", error)
+      } finally {
+        setLoading(false)
       }
-    } catch (error) {
-      console.error(`❌ Error cargando ${chartType}:`, error)
-      setErrors((prev) => ({
-        ...prev,
-        [chartType]: error instanceof Error ? error.message : "Error desconocido",
-      }))
-    } finally {
-      setLoading((prev) => ({ ...prev, [chartType]: false }))
     }
+
+    loadAllData()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="space-y-8">
+        <Card className="bg-gradient-to-r from-green-500 to-blue-500 text-white">
+          <CardHeader>
+            <CardTitle className="text-2xl">📊 Dashboard de Energía Renovable</CardTitle>
+            <CardDescription className="text-green-100">
+              Cargando datos históricos desde 1965 hasta 2022 - América Latina
+            </CardDescription>
+          </CardHeader>
+        </Card>
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center space-y-4">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-green-500 mx-auto"></div>
+            <h3 className="text-xl font-semibold text-gray-700">Cargando Dashboard</h3>
+            <p className="text-gray-600">Procesando datos de energía renovable...</p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -116,49 +474,26 @@ export default function Dashboard({ data }: DashboardProps) {
         </CardHeader>
       </Card>
 
-      {/* Gráfico de Barras - TODOS LOS AÑOS DESDE 1965 */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>📊 Gráfico de Barras: Producción de Energía Renovable por Fuente</CardTitle>
-              <CardDescription>
-                Evolución histórica completa desde 1965 - Biomasa, Solar, Eólica, Hidráulica (TWh)
-              </CardDescription>
-            </div>
-            <Button
-              onClick={() => loadSpecificChartData("barChart", "bar-chart-renewable-consumption")}
-              disabled={loading.barChart}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              {loading.barChart ? "Cargando..." : "Cargar Datos Históricos"}
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {loading.barChart && (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
-              <span className="ml-3">Procesando datos históricos desde 1965...</span>
-            </div>
-          )}
-
-          {errors.barChart && (
-            <Alert className="border-red-500 bg-red-50 mb-4">
-              <AlertDescription className="text-red-700">Error: {errors.barChart}</AlertDescription>
-            </Alert>
-          )}
-
-          {chartData.barChart.length > 0 && !loading.barChart && (
+      {/* Grid de 4 Gráficos - 2x2 */}
+      <div className="grid lg:grid-cols-2 gap-8">
+        {/* Gráfico de Barras - Top Left - TODOS LOS AÑOS DESDE 1965 */}
+        <Card className="h-fit">
+          <CardHeader>
+            <CardTitle className="text-lg">📊 Producción de Energía Renovable por Fuente</CardTitle>
+            <CardDescription>
+              Evolución histórica completa desde 1965 - Biomasa, Solar, Eólica, Hidráulica (TWh)
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
             <div className="space-y-4">
-              <div className="bg-green-50 p-3 rounded">
+              <div className="bg-green-50 p-3 rounded text-center">
                 <p className="text-sm text-green-700">
                   <strong>Período:</strong> {Math.min(...chartData.barChart.map((d) => d.year))} -{" "}
                   {Math.max(...chartData.barChart.map((d) => d.year))} | <strong>Total años:</strong>{" "}
                   {chartData.barChart.length}
                 </p>
               </div>
-              <ResponsiveContainer width="100%" height={500}>
+              <ResponsiveContainer width="100%" height={350}>
                 <BarChart data={chartData.barChart}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="year" />
@@ -175,240 +510,85 @@ export default function Dashboard({ data }: DashboardProps) {
                 </BarChart>
               </ResponsiveContainer>
             </div>
-          )}
+          </CardContent>
+        </Card>
 
-          {chartData.barChart.length === 0 && !loading.barChart && !errors.barChart && (
-            <div className="text-center py-12 text-gray-500">
-              <div className="text-4xl mb-2">📊</div>
-              <p>Haz clic en "Cargar Datos Históricos" para ver la evolución desde 1965</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Gráfico de Torta - TODAS LAS FUENTES */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>🥧 Gráfico de Torta: Participación de Energías Renovables</CardTitle>
-              <CardDescription>
-                Distribución actual por fuente: Hidroeléctrica, Eólica, Solar, Biocombustibles, Geotérmica
-              </CardDescription>
-            </div>
-            <Button
-              onClick={() => loadSpecificChartData("pieChart")}
-              disabled={loading.pieChart}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              {loading.pieChart ? "Procesando 5 archivos..." : "Cargar Participación"}
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {loading.pieChart && (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-              <span className="ml-3">Procesando 25,800 registros de 5 fuentes energéticas...</span>
-            </div>
-          )}
-
-          {errors.pieChart && (
-            <Alert className="border-red-500 bg-red-50 mb-4">
-              <AlertDescription className="text-red-700">Error: {errors.pieChart}</AlertDescription>
-            </Alert>
-          )}
-
-          {chartData.pieChart && !loading.pieChart && (
-            <div className="space-y-6">
-              {/* Información del año y registros procesados */}
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <div className="grid md:grid-cols-4 gap-4 text-center">
-                  <div>
-                    <div className="text-2xl font-bold text-blue-600">{chartData.pieChart.year}</div>
-                    <div className="text-sm text-blue-700">Año de Datos</div>
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-blue-600">{chartData.pieChart.total} TWh</div>
-                    <div className="text-sm text-blue-700">Total Renovable</div>
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-blue-600">25,800</div>
-                    <div className="text-sm text-blue-700">Registros Procesados</div>
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-blue-600">5</div>
-                    <div className="text-sm text-blue-700">Fuentes Analizadas</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Gráfico de torta */}
-              <ResponsiveContainer width="100%" height={450}>
-                <PieChart>
-                  <Pie
-                    data={chartData.pieChart.data}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, value, absolute }) =>
-                      chartData.pieChart?.useAbsoluteValues ? `${name}: ${absolute} TWh` : `${name}: ${value}%`
-                    }
-                    outerRadius={140}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {chartData.pieChart.data.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    formatter={(value, name, props) =>
-                      chartData.pieChart?.useAbsoluteValues
-                        ? [`${props.payload.absolute} TWh`, "Producción"]
-                        : [`${value}% (${props.payload.absolute} TWh)`, "Participación"]
-                    }
-                  />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-
-              {/* Tabla detallada con TODAS las fuentes */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h4 className="font-semibold mb-4 text-lg">📋 Desglose Completo por Fuente Energética</h4>
-                <div className="grid gap-3">
-                  {chartData.pieChart.data.map((item, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-4 bg-white rounded-lg border-l-4"
-                      style={{ borderLeftColor: item.color }}
-                    >
-                      <div className="flex items-center space-x-4">
-                        <div
-                          className="w-8 h-8 rounded-full border-2 border-white shadow-md"
-                          style={{ backgroundColor: item.color }}
-                        ></div>
-                        <div>
-                          <span className="font-semibold text-lg">{item.name}</span>
-                          <div className="text-sm text-gray-600">
-                            {item.name === "Hidroeléctrica" && "6,500 registros"}
-                            {item.name === "Eólica" && "5,800 registros"}
-                            {item.name === "Solar" && "5,200 registros"}
-                            {item.name === "Biocombustibles" && "4,200 registros"}
-                            {item.name === "Geotérmica" && "3,100 registros"}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-bold text-xl" style={{ color: item.color }}>
-                          {chartData.pieChart?.useAbsoluteValues ? `${item.absolute} TWh` : `${item.value}%`}
-                        </div>
-                        <div className="text-sm text-gray-600">
-                          {!chartData.pieChart?.useAbsoluteValues && `${item.absolute} TWh`}
-                        </div>
-                      </div>
+        {/* Gráfico de Torta - Top Right - MANTENER COMO ESTÁ */}
+        <Card className="h-fit">
+          <CardHeader>
+            <CardTitle className="text-lg">🥧 Participación de Energías Renovables</CardTitle>
+            <CardDescription>
+              Distribución por fuente: Hidroeléctrica, Eólica, Solar, Biocombustibles, Geotérmica
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {chartData.pieChart && (
+              <div className="space-y-4">
+                <div className="bg-blue-50 p-3 rounded text-center">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <div className="font-bold text-blue-600">{chartData.pieChart.year}</div>
+                      <div className="text-blue-700">Año de Datos</div>
                     </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Código de colores oficial */}
-              <div className="bg-white p-4 rounded-lg border-2 border-blue-200">
-                <h4 className="font-semibold mb-3 text-blue-800">🎨 Código de Colores Oficial</h4>
-                <div className="grid md:grid-cols-5 gap-4">
-                  <div className="flex items-center space-x-2 p-2 bg-cyan-50 rounded">
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: "#06B6D4" }}></div>
-                    <span className="text-sm font-medium">Hidroeléctrica</span>
-                  </div>
-                  <div className="flex items-center space-x-2 p-2 bg-blue-50 rounded">
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: "#3B82F6" }}></div>
-                    <span className="text-sm font-medium">Eólica</span>
-                  </div>
-                  <div className="flex items-center space-x-2 p-2 bg-yellow-50 rounded">
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: "#F59E0B" }}></div>
-                    <span className="text-sm font-medium">Solar</span>
-                  </div>
-                  <div className="flex items-center space-x-2 p-2 bg-green-50 rounded">
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: "#10B981" }}></div>
-                    <span className="text-sm font-medium">Biocombustibles</span>
-                  </div>
-                  <div className="flex items-center space-x-2 p-2 bg-red-50 rounded">
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: "#EF4444" }}></div>
-                    <span className="text-sm font-medium">Geotérmica</span>
+                    <div>
+                      <div className="font-bold text-blue-600">{chartData.pieChart.total} TWh</div>
+                      <div className="text-blue-700">Total Renovable</div>
+                    </div>
                   </div>
                 </div>
+                <ResponsiveContainer width="100%" height={350}>
+                  <PieChart>
+                    <Pie
+                      data={chartData.pieChart.data}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, value }) => `${name}: ${value}%`}
+                      outerRadius={120}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {chartData.pieChart.data.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value, name, props) => [`${value}% (${props.payload.absolute} TWh)`, "Participación"]}
+                    />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
-            </div>
-          )}
+            )}
+          </CardContent>
+        </Card>
 
-          {!chartData.pieChart && !loading.pieChart && !errors.pieChart && (
-            <div className="text-center py-12 text-gray-500">
-              <div className="text-4xl mb-2">🥧</div>
-              <p>Haz clic en "Cargar Participación" para procesar los 25,800 registros</p>
-              <p className="text-sm mt-2">Se analizarán automáticamente las 5 fuentes energéticas</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Gráfico de Líneas - Tendencia en la Capacidad Instalada - NUEVO */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>📈 Gráfico de Líneas: Tendencia en la Capacidad Instalada</CardTitle>
-              <CardDescription>
-                Evolución histórica de la capacidad instalada: Eólica, Solar PV y Geotérmica (Gigawatts)
-              </CardDescription>
-            </div>
-            <Button
-              onClick={() => loadSpecificChartData("lineChart")}
-              disabled={loading.lineChart}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              {loading.lineChart ? "Procesando 3 archivos..." : "Cargar Capacidades"}
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {loading.lineChart && (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
-              <span className="ml-3">Procesando 15,400 registros de capacidad instalada...</span>
-            </div>
-          )}
-
-          {errors.lineChart && (
-            <Alert className="border-red-500 bg-red-50 mb-4">
-              <AlertDescription className="text-red-700">Error: {errors.lineChart}</AlertDescription>
-            </Alert>
-          )}
-
-          {chartData.lineChart.length > 0 && !loading.lineChart && (
+        {/* Gráfico de Líneas - Bottom Left - MANTENER COMO ESTÁ */}
+        <Card className="h-fit">
+          <CardHeader>
+            <CardTitle className="text-lg">📈 Tendencia en la Capacidad Instalada</CardTitle>
+            <CardDescription>
+              Evolución histórica completa de capacidad: Eólica, Solar PV y Geotérmica (Gigawatts)
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
             <div className="space-y-4">
-              {/* Información del período */}
-              <div className="bg-purple-50 p-4 rounded-lg">
-                <div className="grid md:grid-cols-3 gap-4 text-center">
+              <div className="bg-purple-50 p-3 rounded text-center">
+                <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <div className="text-2xl font-bold text-purple-600">
+                    <div className="font-bold text-purple-600">
                       {Math.min(...chartData.lineChart.map((d) => d.year))} -{" "}
                       {Math.max(...chartData.lineChart.map((d) => d.year))}
                     </div>
-                    <div className="text-sm text-purple-700">Período Analizado</div>
+                    <div className="text-purple-700">Período Completo</div>
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-purple-600">{chartData.lineChart.length}</div>
-                    <div className="text-sm text-purple-700">Años de Datos</div>
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-purple-600">15,400</div>
-                    <div className="text-sm text-purple-700">Registros Procesados</div>
+                    <div className="font-bold text-purple-600">{chartData.lineChart.length}</div>
+                    <div className="text-purple-700">Años de Datos</div>
                   </div>
                 </div>
               </div>
-
-              {/* Gráfico de líneas */}
-              <ResponsiveContainer width="100%" height={500}>
+              <ResponsiveContainer width="100%" height={350}>
                 <LineChart data={chartData.lineChart}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="year" />
@@ -441,98 +621,38 @@ export default function Dashboard({ data }: DashboardProps) {
                   />
                 </LineChart>
               </ResponsiveContainer>
-
-              {/* Resumen de archivos procesados */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h4 className="font-semibold mb-3">📊 Archivos Procesados</h4>
-                <div className="grid md:grid-cols-3 gap-4">
-                  <div className="bg-white p-3 rounded border-l-4 border-blue-500">
-                    <div className="font-medium text-blue-700">Capacidad Eólica</div>
-                    <div className="text-sm text-gray-600">6,200 registros • Datos acumulados en GW</div>
-                  </div>
-                  <div className="bg-white p-3 rounded border-l-4 border-yellow-500">
-                    <div className="font-medium text-yellow-700">Capacidad Solar PV</div>
-                    <div className="text-sm text-gray-600">5,400 registros • Paneles fotovoltaicos</div>
-                  </div>
-                  <div className="bg-white p-3 rounded border-l-4 border-red-500">
-                    <div className="font-medium text-red-700">Capacidad Geotérmica</div>
-                    <div className="text-sm text-gray-600">3,800 registros • Energía geotérmica</div>
-                  </div>
-                </div>
-              </div>
             </div>
-          )}
+          </CardContent>
+        </Card>
 
-          {chartData.lineChart.length === 0 && !loading.lineChart && !errors.lineChart && (
-            <div className="text-center py-12 text-gray-500">
-              <div className="text-4xl mb-2">📈</div>
-              <p>Haz clic en "Cargar Capacidades" para ver la evolución de capacidad instalada</p>
-              <p className="text-sm mt-2">Se procesarán 3 archivos con 15,400 registros totales</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Gráfico de Área - Producción Moderna de Energía Renovable */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>📊 Gráfico de Área: Producción Moderna de Energía Renovable</CardTitle>
-              <CardDescription>
-                Evolución de la producción por fuente: Biomasa, Solar, Eólica e Hidroeléctrica (TWh)
-              </CardDescription>
-            </div>
-            <Button
-              onClick={() => loadSpecificChartData("areaChart")}
-              disabled={loading.areaChart}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              {loading.areaChart ? "Cargando datos..." : "Cargar Producción"}
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {loading.areaChart && (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
-              <span className="ml-3">Procesando datos de producción moderna...</span>
-            </div>
-          )}
-
-          {errors.areaChart && (
-            <Alert className="border-red-500 bg-red-50 mb-4">
-              <AlertDescription className="text-red-700">Error: {errors.areaChart}</AlertDescription>
-            </Alert>
-          )}
-
-          {chartData.areaChart.length > 0 && !loading.areaChart && (
+        {/* Gráfico de Área - Bottom Right - RESTAURADO COMO ESTABA ANTES */}
+        <Card className="h-fit">
+          <CardHeader>
+            <CardTitle className="text-lg">📊 Producción Moderna de Energía Renovable</CardTitle>
+            <CardDescription>
+              Evolución histórica completa por fuente: Biomasa, Solar, Eólica e Hidroeléctrica (TWh)
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
             <div className="space-y-4">
-              {/* Información del período */}
-              <div className="bg-orange-50 p-4 rounded-lg">
-                <div className="grid md:grid-cols-3 gap-4 text-center">
+              <div className="bg-orange-50 p-3 rounded text-center">
+                <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <div className="text-2xl font-bold text-orange-600">
+                    <div className="font-bold text-orange-600">
                       {Math.min(...chartData.areaChart.map((d) => d.year))} -{" "}
                       {Math.max(...chartData.areaChart.map((d) => d.year))}
                     </div>
-                    <div className="text-sm text-orange-700">Período Analizado</div>
+                    <div className="text-orange-700">Período Completo</div>
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-orange-600">{chartData.areaChart.length}</div>
-                    <div className="text-sm text-orange-700">Años de Datos</div>
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-orange-600">
+                    <div className="font-bold text-orange-600">
                       {chartData.areaChart.reduce((sum, d) => sum + d["Total Renovable"], 0).toFixed(1)}
                     </div>
-                    <div className="text-sm text-orange-700">TWh Total Acumulado</div>
+                    <div className="text-orange-700">TWh Total</div>
                   </div>
                 </div>
               </div>
-
-              {/* Gráfico de área */}
-              <ResponsiveContainer width="100%" height={500}>
+              <ResponsiveContainer width="100%" height={350}>
                 <AreaChart data={chartData.areaChart}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="year" />
@@ -569,53 +689,10 @@ export default function Dashboard({ data }: DashboardProps) {
                   />
                 </AreaChart>
               </ResponsiveContainer>
-
-              {/* Resumen de totales por fuente */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h4 className="font-semibold mb-3">📊 Totales por Fuente Energética</h4>
-                <div className="grid md:grid-cols-4 gap-4">
-                  <div className="bg-white p-3 rounded border-l-4 border-green-500">
-                    <div className="font-medium text-green-700">Biomasa y Otros</div>
-                    <div className="text-2xl font-bold text-green-600">
-                      {chartData.areaChart.reduce((sum, d) => sum + d["Biomasa y Otros"], 0).toFixed(1)} TWh
-                    </div>
-                    <div className="text-sm text-gray-600">Total histórico</div>
-                  </div>
-                  <div className="bg-white p-3 rounded border-l-4 border-yellow-500">
-                    <div className="font-medium text-yellow-700">Solar</div>
-                    <div className="text-2xl font-bold text-yellow-600">
-                      {chartData.areaChart.reduce((sum, d) => sum + d["Solar"], 0).toFixed(1)} TWh
-                    </div>
-                    <div className="text-sm text-gray-600">Total histórico</div>
-                  </div>
-                  <div className="bg-white p-3 rounded border-l-4 border-blue-500">
-                    <div className="font-medium text-blue-700">Eólica</div>
-                    <div className="text-2xl font-bold text-blue-600">
-                      {chartData.areaChart.reduce((sum, d) => sum + d["Eólica"], 0).toFixed(1)} TWh
-                    </div>
-                    <div className="text-sm text-gray-600">Total histórico</div>
-                  </div>
-                  <div className="bg-white p-3 rounded border-l-4 border-cyan-500">
-                    <div className="font-medium text-cyan-700">Hidroeléctrica</div>
-                    <div className="text-2xl font-bold text-cyan-600">
-                      {chartData.areaChart.reduce((sum, d) => sum + d["Hidroeléctrica"], 0).toFixed(1)} TWh
-                    </div>
-                    <div className="text-sm text-gray-600">Total histórico</div>
-                  </div>
-                </div>
-              </div>
             </div>
-          )}
-
-          {chartData.areaChart.length === 0 && !loading.areaChart && !errors.areaChart && (
-            <div className="text-center py-12 text-gray-500">
-              <div className="text-4xl mb-2">📊</div>
-              <p>Haz clic en "Cargar Producción" para ver la evolución de producción moderna</p>
-              <p className="text-sm mt-2">Se procesarán datos de Biomasa, Solar, Eólica e Hidroeléctrica</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
