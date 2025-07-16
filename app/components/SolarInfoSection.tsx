@@ -245,7 +245,7 @@ export default function SolarInfoSection() {
 
       {/* Benefits Section */}
       <div>
-        <h3 className="text-3xl font-bold text-gray-800 mb-6 text-center">Beneficios de la Energía Solar</h3>
+        <h3 className="text-3xl font-bold text-gray-800 mb-6 text-center">Beneficios de las energías renovables</h3>
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           {benefits.map((benefit, index) => (
             <Card key={index} className="hover:shadow-lg transition-shadow duration-300 border-l-4 border-l-green-500">
