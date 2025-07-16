@@ -208,7 +208,7 @@ export default function DataUploader({ onDataLoad }: DataUploaderProps) {
                 <div className="mt-4 p-3 bg-white rounded border-l-4 border-blue-500">
                   <p className="text-xs text-gray-600">
                     <strong>Nota:</strong> Los datos se procesan automáticamente y se convierten al formato estándar
-                    para su análisis en la calculadora y dashboard.
+                    para su análisis en la calculadora.
                   </p>
                 </div>
               </div>

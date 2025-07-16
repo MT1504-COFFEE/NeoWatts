@@ -197,9 +197,9 @@ export default function SolarInfoSection() {
           </p>
           <p className="mt-4 text-base text-blue-200 font-medium">
             Nuestro grupo está conformado por:{" "}
-            <span className="font-bold text-white">Juan José, Juan Esteban, Manuela López, Stefany Restrepo</span> y{" "}
-            <span className="font-bold text-white">Mathius Lozano</span>, unidos por la pasión de transformar la energía
-            en bienestar para todos.
+            <span className="font-bold text-white">Juan Camilo Gonzales, Juan Esteban Galvis, Manuela López, Stefany Restrepo</span> y{" "}
+            <span className="font-bold text-white">Mathius Lozano</span>, unidos por conocer más sobre energías renovables y dar a 
+            conocer su potencial.
           </p>
         </CardContent>
       </Card>
