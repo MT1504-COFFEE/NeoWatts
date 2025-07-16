@@ -33,7 +33,7 @@ function parseCSV(csvText: string): any[] {
   return lines
     .slice(1)
     .map((line) => {
-      const values = []
+      const values: string[] = []
       let current = ""
       let inQuotes = false
 
