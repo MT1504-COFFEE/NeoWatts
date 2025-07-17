@@ -25,7 +25,7 @@ export default function Home() {
             <img src="/favicon.png" alt="NeoWatts Logo" className="h-12 w-12 rounded-full" />
             <div>
               <h1 className="text-3xl font-bold text-gray-800">NeoWatts</h1>
-              <p className="text-gray-600">Análisis histórico de datos energéticos (1965-2022)</p>
+              <p className="text-gray-600">Análisis histórico de datos energéticos (1965-2021)</p>
             </div>
           </div>
         </div>
