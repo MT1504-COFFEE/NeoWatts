@@ -199,7 +199,7 @@ export function processBarChartData(data: ModernRenewableConsumptionData[]) {
     .sort((a, b) => a.year - b.year) // TODOS LOS AÑOS DESDE 1965
 }
 
-// Función para procesar datos del gráfico de torta - COMPLETAMENTE CORREGIDA
+// Función para procesar datos del gráfico de torta
 export async function processPieChartData() {
   try {
     console.log("🔄 Iniciando carga de archivos para gráfico de torta...")
@@ -248,7 +248,7 @@ export async function processPieChartData() {
       geothermal: latestGeothermal.length,
     })
 
-    // Calcular totales por fuente - CORREGIDO COMPLETAMENTE
+    // Calcular totales por fuente
     const hydroTotal = latestHydro.reduce((sum: number, item: any) => {
       const value = Number.parseFloat(item["Electricity from hydro (TWh)"]) || 0
       return sum + value
@@ -341,7 +341,7 @@ export async function processPieChartData() {
   }
 }
 
-// Función para procesar datos del gráfico de líneas - NUEVA
+// Función para procesar datos del gráfico de líneas
 export async function processLineChartData() {
   try {
     console.log("📈 Iniciando carga de archivos para gráfico de líneas...")
