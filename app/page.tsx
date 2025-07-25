@@ -77,7 +77,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="bg-gray-800 text-white py-8 mt-16">
         <div className="container mx-auto px-4 text-center">
-          <p className="text-gray-300">© 2025 Dashboard Energía Renovable - Datos históricos 1965-2022</p>
+          <p className="text-gray-300">© 2025 Dashboard Energía Renovable - Datos históricos 1965-202</p>
         </div>
       </footer>
     </div>
