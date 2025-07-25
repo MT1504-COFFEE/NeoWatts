@@ -583,7 +583,7 @@ export default function Dashboard({ data }: DashboardProps) {
           </CardContent>
         </Card>
 
-        {/* Gráfico de Torta - Top Right - MANTENER COMO ESTÁ */}
+        {/* Gráfico de Torta */}
         <Card className="h-fit">
           <CardHeader>
             <CardTitle className="text-lg">🥧 Participación de Energías Renovables</CardTitle>
