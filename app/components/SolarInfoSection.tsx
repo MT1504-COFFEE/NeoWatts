@@ -5,9 +5,21 @@ import type React from "react"
 import { useState, useEffect, useRef, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-// Removed ChevronLeft, ChevronRight import as they are no longer used
 
 export default function SolarInfoSection() {
+  enum EnergyCost {
+    Low = "Bajo",
+    Medium = "Medio",
+    High = "Alto",
+  }
+
+  type Energy = {
+    source: string;
+    efficiency: string;
+    cost: EnergyCost;
+    emissions: string;
+    color: string;
+  }
   const benefits = [
     { title: "Energía Limpia", description: "No produce emisiones de CO2 durante su operación", icon: "🌱" },
     { title: "Renovable", description: "Fuente inagotable de energía del sol", icon: "♻️" },
@@ -15,12 +27,12 @@ export default function SolarInfoSection() {
     { title: "Escalable", description: "Desde instalaciones residenciales hasta plantas industriales", icon: "📈" },
   ]
 
-  const comparisons = [
-    { source: "Solar", efficiency: "20-22%", cost: "Bajo", emissions: "0 kg CO2/MWh", color: "bg-yellow-500" },
-    { source: "Eólica", efficiency: "35-45%", cost: "Bajo", emissions: "11 kg CO2/MWh", color: "bg-blue-500" },
-    { source: "Hidráulica", efficiency: "80-90%", cost: "Medio", emissions: "24 kg CO2/MWh", color: "bg-cyan-500" },
-    { source: "Carbón", efficiency: "33-40%", cost: "Medio", emissions: "820 kg CO2/MWh", color: "bg-gray-700" },
-    { source: "Gas Natural", efficiency: "50-60%", cost: "Medio", emissions: "490 kg CO2/MWh", color: "bg-orange-500" },
+  const comparisons: Energy[] = [
+    { source: "Solar", efficiency: "20-22%", cost: EnergyCost.Low, emissions: "0 kg CO2/MWh", color: "bg-yellow-500" },
+    { source: "Eólica", efficiency: "35-45%", cost: EnergyCost.Low, emissions: "11 kg CO2/MWh", color: "bg-blue-500" },
+    { source: "Hidráulica", efficiency: "80-90%", cost: EnergyCost.Medium, emissions: "24 kg CO2/MWh", color: "bg-cyan-500" },
+    { source: "Geotérmica", efficiency: "10-20%", cost: EnergyCost.Medium, emissions: "5 kg CO2/MWh", color: "bg-red-500" },
+    { source: "Biomasa", efficiency: "20-25%", cost: EnergyCost.High, emissions: "120 kg CO2/MWh", color: "bg-green-500" },
   ]
 
   const energyBanners = [
@@ -204,14 +216,14 @@ export default function SolarInfoSection() {
         </CardContent>
       </Card>
 
-      {/* Hero Section - Dynamic Banner */}
+    
       <div
         className={`relative bg-gradient-to-r ${currentBanner.gradient} rounded-2xl p-8 text-white overflow-hidden transition-all duration-1500 ease-in-out`}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
-        style={{ cursor: "grab" }} // Indicate it's draggable
+        style={{ cursor: "grab" }} 
       >
         <div className="absolute inset-0 bg-black bg-opacity-20"></div>
         <div key={currentBanner.key} className="relative z-10 transition-opacity duration-700 ease-in-out">
@@ -240,7 +252,7 @@ export default function SolarInfoSection() {
           </div>
         </div>
 
-        {/* Navigation Arrows (removed from JSX) */}
+      
       </div>
 
       {/* Benefits Section */}
@@ -293,8 +305,7 @@ export default function SolarInfoSection() {
                       <td className="py-3 px-4">
                         <Badge
                           variant={
-                            item.cost === "red" ?  "default" : item.cost === "Medio" ? "secondary" : "destructive"
-                          }
+                            item.cost === EnergyCost.Low ?  "destructive" : "secondary"}
                         >
                           {item.cost}
                         </Badge>
