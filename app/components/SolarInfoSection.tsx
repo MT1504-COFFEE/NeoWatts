@@ -211,7 +211,7 @@ export default function SolarInfoSection() {
             Nuestro grupo está conformado por:{" "}
             <span className="font-bold text-white">Juan Camilo Gonzales, Juan Esteban Galvis, Manuela López, Stefany Restrepo</span> y{" "}
             <span className="font-bold text-white">Mathius Lozano</span>, unidos por conocer más sobre energías renovables y dar a 
-            conocer su potencial.
+            conocer su potencial (Informacion sacada de los archivos dados y informacion consultada de: - ).
           </p>
         </CardContent>
       </Card>
