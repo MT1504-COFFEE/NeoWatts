@@ -1,7 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Button } from "@/components/ui/button"
 import {
   BarChart,
   Bar,
@@ -65,9 +67,18 @@ function parseCSV(csvText: string): any[] {
     .filter((row) => row.Entity && row.Year)
 }
 
-// Función para procesar datos del gráfico de barras - TODOS LOS AÑOS DESDE 1965
-function processBarChartData(data: any[]) {
-  const yearlyData = data.reduce(
+// Función para procesar datos del gráfico de barras con filtros
+function processBarChartData(data: any[], selectedCountry = "all", selectedYear = "all") {
+  // Filtrar por país y año si se especifica
+  let filteredData = data
+  if (selectedCountry !== "all") {
+    filteredData = filteredData.filter((item) => item.Entity === selectedCountry)
+  }
+  if (selectedYear !== "all") {
+    filteredData = filteredData.filter((item) => item.Year === Number.parseInt(selectedYear))
+  }
+
+  const yearlyData = filteredData.reduce(
     (acc, item) => {
       if (!acc[item.Year]) {
         acc[item.Year] = {
@@ -96,7 +107,6 @@ function processBarChartData(data: any[]) {
     {} as Record<number, any>,
   )
 
-  // MOSTRAR TODOS LOS AÑOS, NO SOLO LOS ÚLTIMOS 10
   return Object.values(yearlyData)
     .map((item: any) => ({
       year: item.year,
@@ -105,132 +115,175 @@ function processBarChartData(data: any[]) {
       Eólica: Number((item.wind / item.count).toFixed(2)),
       Hidroeléctrica: Number((item.hydro / item.count).toFixed(2)),
     }))
-    .sort((a, b) => a.year - b.year) // TODOS LOS AÑOS DESDE 1965
+    .sort((a, b) => a.year - b.year)
 }
 
-// Función para procesar datos del gráfico de torta
-async function processPieChartData() {
+// CORREGIDO: Función para procesar datos del gráfico de torta - LIMPIA Y PRECISA
+function processPieChartDataFromMainFile(data: any[], selectedCountry = "all", selectedYear = "all") {
   try {
-    const [hydropowerData, windData, biofuelData, solarData, geothermalData] = await Promise.all([
-      fetch("/data/hydropower_consumption_latam.csv")
-        .then((r) => r.text())
-        .then(parseCSV),
-      fetch("/data/wind_generation_latam.csv")
-        .then((r) => r.text())
-        .then(parseCSV),
-      fetch("/data/biofuel_production_latam.csv")
-        .then((r) => r.text())
-        .then(parseCSV),
-      fetch("/data/solar_energy_consumption_latam.csv")
-        .then((r) => r.text())
-        .then(parseCSV),
-      fetch("/data/installed_geothermal_capacity_latam.csv")
-        .then((r) => r.text())
-        .then(parseCSV),
-    ])
+    console.log("🥧 Procesando datos de torta desde archivo principal...")
+    console.log("📊 Total de registros en archivo:", data.length)
 
-    const allYears = [
-      ...hydropowerData.map((d: any) => d.Year).filter((y) => !isNaN(y)),
-      ...windData.map((d: any) => d.Year).filter((y) => !isNaN(y)),
-      ...biofuelData.map((d: any) => d.Year).filter((y) => !isNaN(y)),
-      ...solarData.map((d: any) => d.Year).filter((y) => !isNaN(y)),
-      ...geothermalData.map((d: any) => d.Year).filter((y) => !isNaN(y)),
-    ]
-    const latestYear = Math.max(...allYears)
+    // Filtrar por país y año si se especifica
+    let filteredData = data
+    if (selectedCountry !== "all") {
+      filteredData = filteredData.filter((item) => item.Entity === selectedCountry)
+      console.log(`🔍 Filtrado por país ${selectedCountry}: ${filteredData.length} registros`)
+    }
 
-    const latestHydro = hydropowerData.filter((d: any) => d.Year === latestYear)
-    const latestWind = windData.filter((d: any) => d.Year === latestYear)
-    const latestBiofuel = biofuelData.filter((d: any) => d.Year === latestYear)
-    const latestSolar = solarData.filter((d: any) => d.Year === latestYear)
-    const latestGeothermal = geothermalData.filter((d: any) => d.Year === latestYear)
+    // Determinar el año a usar
+    let targetYear: number
+    if (selectedYear !== "all") {
+      targetYear = Number.parseInt(selectedYear)
+      filteredData = filteredData.filter((item) => item.Year === targetYear)
+    } else {
+      // Usar el año más reciente disponible
+      const availableYears = filteredData.map((item) => item.Year).filter((y) => !isNaN(y))
+      targetYear = Math.max(...availableYears)
+      filteredData = filteredData.filter((item) => item.Year === targetYear)
+    }
 
-    const hydroTotal = latestHydro.reduce((sum: number, item: any) => {
-      const value = Number.parseFloat(item["Electricity from hydro (TWh)"]) || 0
-      return sum + value
-    }, 0)
+    console.log(`📅 Usando año ${targetYear}: ${filteredData.length} registros`)
 
-    const windTotal = latestWind.reduce((sum: number, item: any) => {
-      const value = Number.parseFloat(item["Electricity from wind (TWh)"]) || 0
-      return sum + value
-    }, 0)
+    if (filteredData.length === 0) {
+      console.log("⚠️ No hay datos disponibles para los filtros seleccionados")
+      return {
+        data: [],
+        year: targetYear,
+        total: 0,
+        message: `No hay datos disponibles para ${selectedCountry !== "all" ? selectedCountry : "la región"} en ${selectedYear !== "all" ? selectedYear : "el año más reciente"}`,
+      }
+    }
 
-    const biofuelTotal = latestBiofuel.reduce((sum: number, item: any) => {
-      const value = Number.parseFloat(item["Biofuels Production - TWh - Total"]) || 0
-      return sum + value
-    }, 0)
+    // Calcular totales por fuente de energía - SUMANDO TODOS LOS REGISTROS
+    const totals = filteredData.reduce(
+      (acc, item) => {
+        const biomass = Number.parseFloat(item["Geo Biomass Other - TWh"]) || 0
+        const solar = Number.parseFloat(item["Solar Generation - TWh"]) || 0
+        const wind = Number.parseFloat(item["Wind Generation - TWh"]) || 0
+        const hydro = Number.parseFloat(item["Hydro Generation - TWh"]) || 0
 
-    const solarTotal = latestSolar.reduce((sum: number, item: any) => {
-      const value = Number.parseFloat(item["Electricity from solar (TWh)"]) || 0
-      return sum + value
-    }, 0)
+        acc.biomass += biomass
+        acc.solar += solar
+        acc.wind += wind
+        acc.hydro += hydro
 
-    const geothermalTotal = latestGeothermal.reduce((sum: number, item: any) => {
-      const value = Number.parseFloat(item["Geothermal Capacity"]) || 0
-      return sum + value
-    }, 0)
+        return acc
+      },
+      { biomass: 0, solar: 0, wind: 0, hydro: 0 },
+    )
 
-    const geothermalTWh = geothermalTotal * 0.0076
-    const total = hydroTotal + windTotal + biofuelTotal + solarTotal + geothermalTWh
+    console.log("📊 Totales calculados:", totals)
 
-    const pieData = [
+    const total = totals.biomass + totals.solar + totals.wind + totals.hydro
+
+    if (total === 0 || total < 0.001) {
+      console.log("⚠️ Total de energía renovable es 0 o muy pequeño")
+      return {
+        data: [],
+        year: targetYear,
+        total: 0,
+        message: "No hay producción significativa de energía renovable registrada para los filtros seleccionados",
+      }
+    }
+
+    // Crear datos para el gráfico de torta con UMBRAL MÍNIMO
+    const rawPieData = [
       {
         name: "Hidroeléctrica",
-        value: Number(((hydroTotal / total) * 100).toFixed(1)),
-        absolute: Number(hydroTotal.toFixed(2)),
+        value: Number(((totals.hydro / total) * 100).toFixed(1)),
+        absolute: Number(totals.hydro.toFixed(2)),
         color: "#06B6D4",
       },
       {
         name: "Eólica",
-        value: Number(((windTotal / total) * 100).toFixed(1)),
-        absolute: Number(windTotal.toFixed(2)),
+        value: Number(((totals.wind / total) * 100).toFixed(1)),
+        absolute: Number(totals.wind.toFixed(2)),
         color: "#3B82F6",
       },
       {
         name: "Solar",
-        value: Number(((solarTotal / total) * 100).toFixed(1)),
-        absolute: Number(solarTotal.toFixed(2)),
+        value: Number(((totals.solar / total) * 100).toFixed(1)),
+        absolute: Number(totals.solar.toFixed(2)),
         color: "#F59E0B",
       },
       {
-        name: "Biocombustibles",
-        value: Number(((biofuelTotal / total) * 100).toFixed(1)),
-        absolute: Number(biofuelTotal.toFixed(2)),
+        name: "Biomasa y Otros",
+        value: Number(((totals.biomass / total) * 100).toFixed(1)),
+        absolute: Number(totals.biomass.toFixed(2)),
         color: "#10B981",
-      },
-      {
-        name: "Geotérmica",
-        value: Number(((geothermalTWh / total) * 100).toFixed(1)),
-        absolute: Number(geothermalTWh.toFixed(2)),
-        color: "#EF4444",
       },
     ]
 
+    console.log("📊 Datos brutos del gráfico:", rawPieData)
+
+    // FILTRADO INTELIGENTE: Solo mostrar fuentes significativas
+    const significantData = rawPieData.filter((item) => {
+      // Mostrar si tiene más del 2% O más de 1 TWh
+      return item.value >= 2.0 || item.absolute >= 1.0
+    })
+
+    console.log("🔍 Datos significativos:", significantData)
+
+    // Si solo hay una fuente significativa, mostrar solo esa
+    let finalData = significantData
+
+    // Verificar si hay una fuente dominante (>95%)
+    const dominantSource = rawPieData.find((item) => item.value >= 95)
+    if (dominantSource) {
+      console.log("👑 Fuente dominante detectada:", dominantSource.name, dominantSource.value + "%")
+      finalData = [dominantSource]
+    }
+    // Si hay muy pocas fuentes significativas, mostrar solo las más importantes
+    else if (significantData.length <= 2) {
+      finalData = significantData
+    }
+    // Si hay muchas fuentes pequeñas, agrupar las menores
+    else if (significantData.length > 4) {
+      const sortedData = significantData.sort((a, b) => b.value - a.value)
+      const mainSources = sortedData.slice(0, 3)
+      const otherSources = sortedData.slice(3)
+
+      if (otherSources.length > 0) {
+        const otherTotal = otherSources.reduce((sum, item) => sum + item.value, 0)
+        const otherAbsolute = otherSources.reduce((sum, item) => sum + item.absolute, 0)
+
+        finalData = [
+          ...mainSources,
+          {
+            name: "Otras Fuentes",
+            value: Number(otherTotal.toFixed(1)),
+            absolute: Number(otherAbsolute.toFixed(2)),
+            color: "#6B7280",
+          },
+        ]
+      } else {
+        finalData = mainSources
+      }
+    }
+
+    console.log("🎯 Datos finales del gráfico de torta:", finalData)
+
     return {
-      data: pieData,
-      year: latestYear,
+      data: finalData,
+      year: targetYear,
       total: Number(total.toFixed(2)),
+      message: null,
     }
   } catch (error) {
-    console.error("Error procesando datos del gráfico de torta:", error)
+    console.error("❌ Error procesando datos del gráfico de torta:", error)
     return {
-      data: [
-        { name: "Hidroeléctrica", value: 65.2, absolute: 171.2, color: "#06B6D4" },
-        { name: "Eólica", value: 20.1, absolute: 52.8, color: "#3B82F6" },
-        { name: "Solar", value: 10.8, absolute: 28.4, color: "#F59E0B" },
-        { name: "Biocombustibles", value: 3.5, absolute: 9.2, color: "#10B981" },
-        { name: "Geotérmica", value: 0.4, absolute: 1.1, color: "#EF4444" },
-      ],
+      data: [],
       year: 2022,
-      total: 262.7,
+      total: 0,
+      message: "Error al procesar los datos del gráfico de torta",
     }
   }
 }
 
-// Función para procesar datos del gráfico de líneas - COMPLETAMENTE CORREGIDA
-async function processLineChartData() {
+// Función para procesar datos del gráfico de líneas con filtros
+async function processLineChartData(selectedCountry = "all", selectedYear = "all") {
   try {
-    console.log("📈 Iniciando carga de archivos para gráfico de líneas...")
-
     const [windCapacityData, solarCapacityData, geothermalCapacityData] = await Promise.all([
       fetch("/data/cumulative_installed_wind_energy_capacity_gigawatts_latam.csv")
         .then((r) => r.text())
@@ -243,77 +296,63 @@ async function processLineChartData() {
         .then(parseCSV),
     ])
 
-    console.log("📊 Datos cargados para líneas:", {
-      wind: windCapacityData.length,
-      solar: solarCapacityData.length,
-      geothermal: geothermalCapacityData.length,
-    })
+    // Aplicar filtros
+    let filteredWind = windCapacityData
+    let filteredSolar = solarCapacityData
+    let filteredGeothermal = geothermalCapacityData
 
-    // Verificar estructura de datos - usar los primeros elementos para ver las columnas
-    if (windCapacityData.length > 0) {
-      console.log("🔍 Columnas de datos eólicos:", Object.keys(windCapacityData[0]))
-    }
-    if (solarCapacityData.length > 0) {
-      console.log("🔍 Columnas de datos solares:", Object.keys(solarCapacityData[0]))
-    }
-    if (geothermalCapacityData.length > 0) {
-      console.log("🔍 Columnas de datos geotérmicos:", Object.keys(geothermalCapacityData[0]))
+    if (selectedCountry !== "all") {
+      filteredWind = filteredWind.filter((d: any) => d.Entity === selectedCountry)
+      filteredSolar = filteredSolar.filter((d: any) => d.Entity === selectedCountry)
+      filteredGeothermal = filteredGeothermal.filter((d: any) => d.Entity === selectedCountry)
     }
 
-    // Obtener todos los años disponibles
+    // Obtener años únicos
     const allYears = [
-      ...windCapacityData.map((d: any) => d.Year).filter((y) => !isNaN(y) && y > 1990),
-      ...solarCapacityData.map((d: any) => d.Year).filter((y) => !isNaN(y) && y > 1990),
-      ...geothermalCapacityData.map((d: any) => d.Year).filter((y) => !isNaN(y) && y > 1990),
+      ...filteredWind.map((d: any) => d.Year).filter((y) => !isNaN(y) && y > 1990),
+      ...filteredSolar.map((d: any) => d.Year).filter((y) => !isNaN(y) && y > 1990),
+      ...filteredGeothermal.map((d: any) => d.Year).filter((y) => !isNaN(y) && y > 1990),
     ]
-    const uniqueYears = [...new Set(allYears)].sort((a, b) => a - b)
+    let uniqueYears = [...new Set(allYears)].sort((a, b) => a - b)
 
-    console.log("📅 Años únicos encontrados:", {
-      total: uniqueYears.length,
-      range: `${Math.min(...uniqueYears)} - ${Math.max(...uniqueYears)}`,
-    })
+    // Filtrar por año específico si se selecciona
+    if (selectedYear !== "all") {
+      uniqueYears = uniqueYears.filter((year) => year === Number.parseInt(selectedYear))
+    }
 
-    // Procesar datos por año - USAR NOMBRES EXACTOS DE COLUMNAS
+    // Procesar datos por año
     const lineData = uniqueYears.map((year) => {
-      // Filtrar datos por año
-      const windYear = windCapacityData.filter((d: any) => d.Year === year)
-      const solarYear = solarCapacityData.filter((d: any) => d.Year === year)
-      const geothermalYear = geothermalCapacityData.filter((d: any) => d.Year === year)
+      const windYear = filteredWind.filter((d: any) => d.Year === year)
+      const solarYear = filteredSolar.filter((d: any) => d.Year === year)
+      const geothermalYear = filteredGeothermal.filter((d: any) => d.Year === year)
 
-      // Calcular totales por fuente para ese año - USAR COLUMNAS EXACTAS
       const windTotal = windYear.reduce((sum: number, item: any) => {
-        // Buscar la columna correcta en los datos eólicos
         const value = Number.parseFloat(
           item["Wind Capacity"] ||
             item["Cumulative installed wind energy capacity"] ||
             item["Cumulative installed wind energy capacity (MW)"] ||
             0,
         )
-        // Los datos ya deberían estar en la unidad correcta según el archivo
-        return sum + value / 1000 // Convertir MW a GW si es necesario
+        return sum + value / 1000
       }, 0)
 
       const solarTotal = solarYear.reduce((sum: number, item: any) => {
-        // Buscar la columna correcta en los datos solares
         const value = Number.parseFloat(
           item["Solar Capacity"] ||
             item["Installed solar PV capacity"] ||
             item["Installed solar PV capacity (MW)"] ||
             0,
         )
-        // Los datos solares suelen estar en MW, convertir a GW
         return sum + value / 1000
       }, 0)
 
       const geothermalTotal = geothermalYear.reduce((sum: number, item: any) => {
-        // Buscar la columna correcta en los datos geotérmicos
         const value = Number.parseFloat(
           item["Geothermal Capacity"] ||
             item["Installed geothermal capacity"] ||
             item["Installed geothermal capacity (MW)"] ||
             0,
         )
-        // Los datos geotérmicos suelen estar en MW, convertir a GW
         return sum + value / 1000
       }, 0)
 
@@ -325,42 +364,17 @@ async function processLineChartData() {
       }
     })
 
-    // Filtrar años con al menos algunos datos
-    const filteredLineData = lineData.filter(
+    return lineData.filter(
       (d) => d["Capacidad Eólica (GW)"] > 0 || d["Capacidad Solar (GW)"] > 0 || d["Capacidad Geotérmica (GW)"] > 0,
     )
-
-    console.log("📈 Datos procesados del gráfico de líneas:", {
-      totalYears: filteredLineData.length,
-      sampleData: filteredLineData.slice(-5), // Últimos 5 años como muestra
-      maxValues: {
-        wind: Math.max(...filteredLineData.map((d) => d["Capacidad Eólica (GW)"])),
-        solar: Math.max(...filteredLineData.map((d) => d["Capacidad Solar (GW)"])),
-        geothermal: Math.max(...filteredLineData.map((d) => d["Capacidad Geotérmica (GW)"])),
-      },
-    })
-
-    return filteredLineData
   } catch (error) {
-    console.error("❌ Error procesando datos del gráfico de líneas:", error)
-    // Datos de respaldo más realistas basados en datos reales de LATAM
-    return [
-      { year: 2000, "Capacidad Eólica (GW)": 0.2, "Capacidad Solar (GW)": 0.0, "Capacidad Geotérmica (GW)": 0.8 },
-      { year: 2005, "Capacidad Eólica (GW)": 0.8, "Capacidad Solar (GW)": 0.1, "Capacidad Geotérmica (GW)": 1.0 },
-      { year: 2010, "Capacidad Eólica (GW)": 2.1, "Capacidad Solar (GW)": 0.3, "Capacidad Geotérmica (GW)": 1.2 },
-      { year: 2012, "Capacidad Eólica (GW)": 4.2, "Capacidad Solar (GW)": 0.8, "Capacidad Geotérmica (GW)": 1.3 },
-      { year: 2014, "Capacidad Eólica (GW)": 7.8, "Capacidad Solar (GW)": 1.5, "Capacidad Geotérmica (GW)": 1.4 },
-      { year: 2016, "Capacidad Eólica (GW)": 12.4, "Capacidad Solar (GW)": 2.8, "Capacidad Geotérmica (GW)": 1.5 },
-      { year: 2018, "Capacidad Eólica (GW)": 18.2, "Capacidad Solar (GW)": 5.1, "Capacidad Geotérmica (GW)": 1.6 },
-      { year: 2020, "Capacidad Eólica (GW)": 25.1, "Capacidad Solar (GW)": 8.7, "Capacidad Geotérmica (GW)": 1.7 },
-      { year: 2021, "Capacidad Eólica (GW)": 28.8, "Capacidad Solar (GW)": 12.3, "Capacidad Geotérmica (GW)": 1.8 },
-      { year: 2022, "Capacidad Eólica (GW)": 32.5, "Capacidad Solar (GW)": 16.8, "Capacidad Geotérmica (GW)": 1.9 },
-    ]
+    console.error("Error procesando datos del gráfico de líneas:", error)
+    return []
   }
 }
 
-// Función para procesar datos del gráfico de área - RESTAURADA COMO ESTABA ANTES
-async function processAreaChartData() {
+// Función para procesar datos del gráfico de área con filtros
+async function processAreaChartData(selectedCountry = "all", selectedYear = "all") {
   try {
     const response = await fetch("/data/modern_renewable_energy_consumption_latam.csv")
     if (!response.ok) {
@@ -368,7 +382,15 @@ async function processAreaChartData() {
     }
 
     const csvText = await response.text()
-    const rawData = parseCSV(csvText)
+    let rawData = parseCSV(csvText)
+
+    // Aplicar filtros
+    if (selectedCountry !== "all") {
+      rawData = rawData.filter((item) => item.Entity === selectedCountry)
+    }
+    if (selectedYear !== "all") {
+      rawData = rawData.filter((item) => item.Year === Number.parseInt(selectedYear))
+    }
 
     // Agrupar por año y calcular totales
     const yearlyData = rawData.reduce(
@@ -400,8 +422,7 @@ async function processAreaChartData() {
       {} as Record<number, any>,
     )
 
-    // Convertir a array y calcular promedios
-    const areaData = Object.values(yearlyData)
+    return Object.values(yearlyData)
       .map((item: any) => ({
         year: item.year,
         "Biomasa y Otros": Number((item.biomass / item.count).toFixed(2)),
@@ -411,87 +432,64 @@ async function processAreaChartData() {
         "Total Renovable": Number(((item.biomass + item.solar + item.wind + item.hydro) / item.count).toFixed(2)),
       }))
       .sort((a, b) => a.year - b.year)
-
-    return areaData
   } catch (error) {
     console.error("Error procesando datos del gráfico de área:", error)
-    // Datos de respaldo
-    return [
-      {
-        year: 2018,
-        "Biomasa y Otros": 45.2,
-        Solar: 12.8,
-        Eólica: 28.5,
-        Hidroeléctrica: 156.3,
-        "Total Renovable": 242.8,
-      },
-      {
-        year: 2019,
-        "Biomasa y Otros": 48.1,
-        Solar: 15.2,
-        Eólica: 32.1,
-        Hidroeléctrica: 162.7,
-        "Total Renovable": 258.1,
-      },
-      {
-        year: 2020,
-        "Biomasa y Otros": 51.3,
-        Solar: 18.9,
-        Eólica: 38.4,
-        Hidroeléctrica: 158.9,
-        "Total Renovable": 267.5,
-      },
-      {
-        year: 2021,
-        "Biomasa y Otros": 54.7,
-        Solar: 23.1,
-        Eólica: 45.2,
-        Hidroeléctrica: 164.5,
-        "Total Renovable": 287.5,
-      },
-      {
-        year: 2022,
-        "Biomasa y Otros": 58.2,
-        Solar: 28.4,
-        Eólica: 52.8,
-        Hidroeléctrica: 171.2,
-        "Total Renovable": 310.6,
-      },
-    ]
+    return []
   }
 }
 
 export default function Dashboard({ data }: DashboardProps) {
   const [chartData, setChartData] = useState<{
     barChart: any[]
-    pieChart: { data: any[]; year: number; total: number } | null
+    pieChart: { data: any[]; year: number; total: number; message?: string | null } | null
     lineChart: any[]
     areaChart: any[]
+    rawBarData: any[]
   }>({
     barChart: [],
     pieChart: null,
     lineChart: [],
     areaChart: [],
+    rawBarData: [],
   })
 
   const [loading, setLoading] = useState(true)
 
+  // Estados para filtros
+  const [barFilters, setBarFilters] = useState({ country: "all", year: "all" })
+  const [pieFilters, setPieFilters] = useState({ country: "all", year: "all" })
+  const [lineFilters, setLineFilters] = useState({ country: "all", year: "all" })
+  const [areaFilters, setAreaFilters] = useState({ country: "all", year: "all" })
+
+  // Obtener países y años únicos de los datos cargados
+  const { countries, years } = useMemo(() => {
+    if (!chartData.rawBarData.length) return { countries: [], years: [] }
+
+    const uniqueCountries = [...new Set(chartData.rawBarData.map((item: any) => item.Entity))].sort()
+    const uniqueYears = [...new Set(chartData.rawBarData.map((item: any) => item.Year))].sort((a, b) => b - a)
+
+    return {
+      countries: uniqueCountries,
+      years: uniqueYears,
+    }
+  }, [chartData.rawBarData])
+
   useEffect(() => {
     const loadAllData = async () => {
       try {
-        // Cargar datos del gráfico de barras - TODOS LOS AÑOS
+        // Cargar datos del gráfico de barras
         const barResponse = await fetch("/data/modern_renewable_energy_consumption_latam.csv")
         const barCsvText = await barResponse.text()
         const barRawData = parseCSV(barCsvText)
         const barData = processBarChartData(barRawData)
 
-        // Cargar datos del gráfico de torta
-        const pieData = await processPieChartData()
+        // CORREGIDO: Usar el mismo archivo para el gráfico de torta
+        const pieData = processPieChartDataFromMainFile(barRawData)
 
         // Cargar datos del gráfico de líneas
         const lineData = await processLineChartData()
 
-        // Cargar datos del gráfico de área - RESTAURADO COMO ESTABA
+        // Cargar datos del gráfico de área
         const areaData = await processAreaChartData()
 
         setChartData({
@@ -499,6 +497,7 @@ export default function Dashboard({ data }: DashboardProps) {
           pieChart: pieData,
           lineChart: lineData,
           areaChart: areaData,
+          rawBarData: barRawData,
         })
       } catch (error) {
         console.error("Error cargando datos:", error)
@@ -509,6 +508,37 @@ export default function Dashboard({ data }: DashboardProps) {
 
     loadAllData()
   }, [])
+
+  // Actualizar gráficos cuando cambien los filtros
+  useEffect(() => {
+    if (chartData.rawBarData.length > 0) {
+      const newBarData = processBarChartData(chartData.rawBarData, barFilters.country, barFilters.year)
+      setChartData((prev) => ({ ...prev, barChart: newBarData }))
+    }
+  }, [barFilters, chartData.rawBarData])
+
+  useEffect(() => {
+    if (chartData.rawBarData.length > 0) {
+      const newPieData = processPieChartDataFromMainFile(chartData.rawBarData, pieFilters.country, pieFilters.year)
+      setChartData((prev) => ({ ...prev, pieChart: newPieData }))
+    }
+  }, [pieFilters, chartData.rawBarData])
+
+  useEffect(() => {
+    const updateLineChart = async () => {
+      const newLineData = await processLineChartData(lineFilters.country, lineFilters.year)
+      setChartData((prev) => ({ ...prev, lineChart: newLineData }))
+    }
+    updateLineChart()
+  }, [lineFilters])
+
+  useEffect(() => {
+    const updateAreaChart = async () => {
+      const newAreaData = await processAreaChartData(areaFilters.country, areaFilters.year)
+      setChartData((prev) => ({ ...prev, areaChart: newAreaData }))
+    }
+    updateAreaChart()
+  }, [areaFilters])
 
   if (loading) {
     return (
@@ -544,15 +574,53 @@ export default function Dashboard({ data }: DashboardProps) {
         </CardHeader>
       </Card>
 
-      {/* Grid de 4 Gráficos - 2x2 */}
+      {/* Grid de 4 Gráficos - 2x2 con Filtros */}
       <div className="grid lg:grid-cols-2 gap-8">
-        {/* Gráfico de Barras - Top Left - TODOS LOS AÑOS DESDE 1965 */}
+        {/* Gráfico de Barras - Top Left */}
         <Card className="h-fit">
           <CardHeader>
             <CardTitle className="text-lg">📊 Producción de Energía Renovable por Fuente</CardTitle>
             <CardDescription>
               Evolución histórica completa desde 1965 - Biomasa, Solar, Eólica, Hidráulica (TWh)
             </CardDescription>
+            {/* Filtros para Gráfico de Barras */}
+            <div className="flex gap-2 mt-4">
+              <Select
+                value={barFilters.country}
+                onValueChange={(value) => setBarFilters((prev) => ({ ...prev, country: value }))}
+              >
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="País" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los países</SelectItem>
+                  {countries.map((country) => (
+                    <SelectItem key={country} value={country}>
+                      {country}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={barFilters.year}
+                onValueChange={(value) => setBarFilters((prev) => ({ ...prev, year: value }))}
+              >
+                <SelectTrigger className="w-32">
+                  <SelectValue placeholder="Año" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los años</SelectItem>
+                  {years.slice(0, 20).map((year) => (
+                    <SelectItem key={year} value={year.toString()}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button variant="outline" size="sm" onClick={() => setBarFilters({ country: "all", year: "all" })}>
+                Limpiar
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -583,63 +651,157 @@ export default function Dashboard({ data }: DashboardProps) {
           </CardContent>
         </Card>
 
-        {/* Gráfico de Torta */}
+        {/* Gráfico de Torta - Top Right - COMPLETAMENTE CORREGIDO */}
         <Card className="h-fit">
           <CardHeader>
             <CardTitle className="text-lg">🥧 Participación de Energías Renovables</CardTitle>
-            <CardDescription>
-              Distribución por fuente: Hidroeléctrica, Eólica, Solar, Biocombustibles, Geotérmica
-            </CardDescription>
+            <CardDescription>Distribución por fuente - Solo fuentes significativas</CardDescription>
+            {/* Filtros para Gráfico de Torta */}
+            <div className="flex gap-2 mt-4">
+              <Select
+                value={pieFilters.country}
+                onValueChange={(value) => setPieFilters((prev) => ({ ...prev, country: value }))}
+              >
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="País" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los países</SelectItem>
+                  {countries.map((country) => (
+                    <SelectItem key={country} value={country}>
+                      {country}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={pieFilters.year}
+                onValueChange={(value) => setPieFilters((prev) => ({ ...prev, year: value }))}
+              >
+                <SelectTrigger className="w-32">
+                  <SelectValue placeholder="Año" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Año más reciente</SelectItem>
+                  {years.slice(0, 20).map((year) => (
+                    <SelectItem key={year} value={year.toString()}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button variant="outline" size="sm" onClick={() => setPieFilters({ country: "all", year: "all" })}>
+                Limpiar
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {chartData.pieChart && (
               <div className="space-y-4">
-                <div className="bg-blue-50 p-3 rounded text-center">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <div className="font-bold text-blue-600">{chartData.pieChart.year}</div>
-                      <div className="text-blue-700">Año de Datos</div>
-                    </div>
-                    <div>
-                      <div className="font-bold text-blue-600">{chartData.pieChart.total} TWh</div>
-                      <div className="text-blue-700">Total Renovable</div>
-                    </div>
+                {chartData.pieChart.message ? (
+                  <div className="bg-yellow-50 border border-yellow-200 p-4 rounded text-center">
+                    <p className="text-yellow-800 font-medium">⚠️ {chartData.pieChart.message}</p>
                   </div>
-                </div>
-                <ResponsiveContainer width="100%" height={350}>
-                  <PieChart>
-                    <Pie
-                      data={chartData.pieChart.data}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, value }) => `${name}: ${value}%`}
-                      outerRadius={120}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {chartData.pieChart.data.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      formatter={(value, name, props) => [`${value}% (${props.payload.absolute} TWh)`, "Participación"]}
-                    />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
+                ) : chartData.pieChart.data.length === 0 ? (
+                  <div className="bg-gray-50 border border-gray-200 p-4 rounded text-center">
+                    <p className="text-gray-600">📊 No hay datos suficientes para mostrar el gráfico</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="bg-blue-50 p-3 rounded text-center">
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <div className="font-bold text-blue-600">{chartData.pieChart.year}</div>
+                          <div className="text-blue-700">Año de Datos</div>
+                        </div>
+                        <div>
+                          <div className="font-bold text-blue-600">{chartData.pieChart.total} TWh</div>
+                          <div className="text-blue-700">Total Renovable</div>
+                        </div>
+                      </div>
+                      {chartData.pieChart.data.length === 1 && (
+                        <div className="mt-2 text-xs text-blue-600">
+                          ✨ Fuente dominante: {chartData.pieChart.data[0].name}
+                        </div>
+                      )}
+                    </div>
+                    <ResponsiveContainer width="100%" height={350}>
+                      <PieChart>
+                        <Pie
+                          data={chartData.pieChart.data}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, value }) => `${name}: ${value}%`}
+                          outerRadius={120}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {chartData.pieChart.data.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          formatter={(value, name, props) => [
+                            `${value}% (${props.payload.absolute} TWh)`,
+                            "Participación",
+                          ]}
+                        />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </>
+                )}
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Gráfico de Líneas */}
+        {/* Gráfico de Líneas - Bottom Left */}
         <Card className="h-fit">
           <CardHeader>
             <CardTitle className="text-lg">📈 Tendencia en la Capacidad Instalada</CardTitle>
             <CardDescription>
               Evolución histórica completa de capacidad: Eólica, Solar PV y Geotérmica (Gigawatts)
             </CardDescription>
+            {/* Filtros para Gráfico de Líneas */}
+            <div className="flex gap-2 mt-4">
+              <Select
+                value={lineFilters.country}
+                onValueChange={(value) => setLineFilters((prev) => ({ ...prev, country: value }))}
+              >
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="País" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los países</SelectItem>
+                  {countries.map((country) => (
+                    <SelectItem key={country} value={country}>
+                      {country}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={lineFilters.year}
+                onValueChange={(value) => setLineFilters((prev) => ({ ...prev, year: value }))}
+              >
+                <SelectTrigger className="w-32">
+                  <SelectValue placeholder="Año" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los años</SelectItem>
+                  {years.slice(0, 20).map((year) => (
+                    <SelectItem key={year} value={year.toString()}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button variant="outline" size="sm" onClick={() => setLineFilters({ country: "all", year: "all" })}>
+                Limpiar
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -647,8 +809,9 @@ export default function Dashboard({ data }: DashboardProps) {
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <div className="font-bold text-purple-600">
-                      {Math.min(...chartData.lineChart.map((d) => d.year))} -{" "}
-                      {Math.max(...chartData.lineChart.map((d) => d.year))}
+                      {chartData.lineChart.length > 0
+                        ? `${Math.min(...chartData.lineChart.map((d) => d.year))} - ${Math.max(...chartData.lineChart.map((d) => d.year))}`
+                        : "N/A"}
                     </div>
                     <div className="text-purple-700">Período Completo</div>
                   </div>
@@ -695,13 +858,51 @@ export default function Dashboard({ data }: DashboardProps) {
           </CardContent>
         </Card>
 
-        {/* Gráfico de Área - Bottom Right - RESTAURADO COMO ESTABA ANTES */}
+        {/* Gráfico de Área - Bottom Right */}
         <Card className="h-fit">
           <CardHeader>
             <CardTitle className="text-lg">📊 Producción Moderna de Energía Renovable</CardTitle>
             <CardDescription>
               Evolución histórica completa por fuente: Biomasa, Solar, Eólica e Hidroeléctrica (TWh)
             </CardDescription>
+            {/* Filtros para Gráfico de Área */}
+            <div className="flex gap-2 mt-4">
+              <Select
+                value={areaFilters.country}
+                onValueChange={(value) => setAreaFilters((prev) => ({ ...prev, country: value }))}
+              >
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="País" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los países</SelectItem>
+                  {countries.map((country) => (
+                    <SelectItem key={country} value={country}>
+                      {country}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={areaFilters.year}
+                onValueChange={(value) => setAreaFilters((prev) => ({ ...prev, year: value }))}
+              >
+                <SelectTrigger className="w-32">
+                  <SelectValue placeholder="Año" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los años</SelectItem>
+                  {years.slice(0, 20).map((year) => (
+                    <SelectItem key={year} value={year.toString()}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button variant="outline" size="sm" onClick={() => setAreaFilters({ country: "all", year: "all" })}>
+                Limpiar
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -709,14 +910,17 @@ export default function Dashboard({ data }: DashboardProps) {
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <div className="font-bold text-orange-600">
-                      {Math.min(...chartData.areaChart.map((d) => d.year))} -{" "}
-                      {Math.max(...chartData.areaChart.map((d) => d.year))}
+                      {chartData.areaChart.length > 0
+                        ? `${Math.min(...chartData.areaChart.map((d) => d.year))} - ${Math.max(...chartData.areaChart.map((d) => d.year))}`
+                        : "N/A"}
                     </div>
                     <div className="text-orange-700">Período Completo</div>
                   </div>
                   <div>
                     <div className="font-bold text-orange-600">
-                      {chartData.areaChart.reduce((sum, d) => sum + d["Total Renovable"], 0).toFixed(1)}
+                      {chartData.areaChart.length > 0
+                        ? chartData.areaChart.reduce((sum, d) => sum + d["Total Renovable"], 0).toFixed(1)
+                        : "0"}
                     </div>
                     <div className="text-orange-700">TWh Total</div>
                   </div>
