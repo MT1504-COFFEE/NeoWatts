@@ -574,22 +574,22 @@ export default function Dashboard({ data }: DashboardProps) {
         </CardHeader>
       </Card>
 
-      {/* Grid de 4 Gráficos - 2x2 con Filtros */}
-      <div className="grid lg:grid-cols-2 gap-8">
+      {/* Grid de 4 Gráficos - Responsive */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-8">
         {/* Gráfico de Barras - Top Left */}
         <Card className="h-fit">
           <CardHeader>
-            <CardTitle className="text-lg">📊 Producción de Energía Renovable por Fuente</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-base md:text-lg">📊 Producción de Energía Renovable por Fuente</CardTitle>
+            <CardDescription className="text-sm">
               Evolución histórica completa desde 1965 - Biomasa, Solar, Eólica, Hidráulica (TWh)
             </CardDescription>
-            {/* Filtros para Gráfico de Barras */}
-            <div className="flex gap-2 mt-4">
+            {/* Filtros para Gráfico de Barras - Responsive */}
+            <div className="flex flex-col sm:flex-row gap-2 mt-4">
               <Select
                 value={barFilters.country}
                 onValueChange={(value) => setBarFilters((prev) => ({ ...prev, country: value }))}
               >
-                <SelectTrigger className="w-40">
+                <SelectTrigger className="w-full sm:w-40">
                   <SelectValue placeholder="País" />
                 </SelectTrigger>
                 <SelectContent>
@@ -605,7 +605,7 @@ export default function Dashboard({ data }: DashboardProps) {
                 value={barFilters.year}
                 onValueChange={(value) => setBarFilters((prev) => ({ ...prev, year: value }))}
               >
-                <SelectTrigger className="w-32">
+                <SelectTrigger className="w-full sm:w-32">
                   <SelectValue placeholder="Año" />
                 </SelectTrigger>
                 <SelectContent>
@@ -617,25 +617,30 @@ export default function Dashboard({ data }: DashboardProps) {
                   ))}
                 </SelectContent>
               </Select>
-              <Button variant="outline" size="sm" onClick={() => setBarFilters({ country: "all", year: "all" })}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setBarFilters({ country: "all", year: "all" })}
+                className="w-full sm:w-auto"
+              >
                 Limpiar
               </Button>
             </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="bg-green-50 p-3 rounded text-center">
-                <p className="text-sm text-green-700">
+              <div className="bg-green-50 p-2 md:p-3 rounded text-center">
+                <p className="text-xs md:text-sm text-green-700">
                   <strong>Período:</strong> {Math.min(...chartData.barChart.map((d) => d.year))} -{" "}
                   {Math.max(...chartData.barChart.map((d) => d.year))} | <strong>Total años:</strong>{" "}
                   {chartData.barChart.length}
                 </p>
               </div>
-              <ResponsiveContainer width="100%" height={350}>
+              <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={chartData.barChart}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="year" />
-                  <YAxis />
+                  <XAxis dataKey="year" fontSize={12} />
+                  <YAxis fontSize={12} />
                   <Tooltip
                     formatter={(value, name) => [`${value} TWh`, name]}
                     labelFormatter={(label) => `Año: ${label}`}
@@ -654,15 +659,15 @@ export default function Dashboard({ data }: DashboardProps) {
         {/* Gráfico de Torta - Top Right - COMPLETAMENTE CORREGIDO */}
         <Card className="h-fit">
           <CardHeader>
-            <CardTitle className="text-lg">🥧 Participación de Energías Renovables</CardTitle>
-            <CardDescription>Distribución por fuente - Solo fuentes significativas</CardDescription>
+            <CardTitle className="text-base md:text-lg">🥧 Participación de Energías Renovables</CardTitle>
+            <CardDescription className="text-sm">Distribución por fuente - Solo fuentes significativas</CardDescription>
             {/* Filtros para Gráfico de Torta */}
-            <div className="flex gap-2 mt-4">
+            <div className="flex flex-col sm:flex-row gap-2 mt-4">
               <Select
                 value={pieFilters.country}
                 onValueChange={(value) => setPieFilters((prev) => ({ ...prev, country: value }))}
               >
-                <SelectTrigger className="w-40">
+                <SelectTrigger className="w-full sm:w-40">
                   <SelectValue placeholder="País" />
                 </SelectTrigger>
                 <SelectContent>
@@ -678,7 +683,7 @@ export default function Dashboard({ data }: DashboardProps) {
                 value={pieFilters.year}
                 onValueChange={(value) => setPieFilters((prev) => ({ ...prev, year: value }))}
               >
-                <SelectTrigger className="w-32">
+                <SelectTrigger className="w-full sm:w-32">
                   <SelectValue placeholder="Año" />
                 </SelectTrigger>
                 <SelectContent>
@@ -690,7 +695,12 @@ export default function Dashboard({ data }: DashboardProps) {
                   ))}
                 </SelectContent>
               </Select>
-              <Button variant="outline" size="sm" onClick={() => setPieFilters({ country: "all", year: "all" })}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPieFilters({ country: "all", year: "all" })}
+                className="w-full sm:w-auto"
+              >
                 Limpiar
               </Button>
             </div>
@@ -725,7 +735,7 @@ export default function Dashboard({ data }: DashboardProps) {
                         </div>
                       )}
                     </div>
-                    <ResponsiveContainer width="100%" height={350}>
+                    <ResponsiveContainer width="100%" height={250}>
                       <PieChart>
                         <Pie
                           data={chartData.pieChart.data}
@@ -733,7 +743,7 @@ export default function Dashboard({ data }: DashboardProps) {
                           cy="50%"
                           labelLine={false}
                           label={({ name, value }) => `${name}: ${value}%`}
-                          outerRadius={120}
+                          outerRadius={80}
                           fill="#8884d8"
                           dataKey="value"
                         >
@@ -760,17 +770,17 @@ export default function Dashboard({ data }: DashboardProps) {
         {/* Gráfico de Líneas - Bottom Left */}
         <Card className="h-fit">
           <CardHeader>
-            <CardTitle className="text-lg">📈 Tendencia en la Capacidad Instalada</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-base md:text-lg">📈 Tendencia en la Capacidad Instalada</CardTitle>
+            <CardDescription className="text-sm">
               Evolución histórica completa de capacidad: Eólica, Solar PV y Geotérmica (Gigawatts)
             </CardDescription>
             {/* Filtros para Gráfico de Líneas */}
-            <div className="flex gap-2 mt-4">
+            <div className="flex flex-col sm:flex-row gap-2 mt-4">
               <Select
                 value={lineFilters.country}
                 onValueChange={(value) => setLineFilters((prev) => ({ ...prev, country: value }))}
               >
-                <SelectTrigger className="w-40">
+                <SelectTrigger className="w-full sm:w-40">
                   <SelectValue placeholder="País" />
                 </SelectTrigger>
                 <SelectContent>
@@ -786,7 +796,7 @@ export default function Dashboard({ data }: DashboardProps) {
                 value={lineFilters.year}
                 onValueChange={(value) => setLineFilters((prev) => ({ ...prev, year: value }))}
               >
-                <SelectTrigger className="w-32">
+                <SelectTrigger className="w-full sm:w-32">
                   <SelectValue placeholder="Año" />
                 </SelectTrigger>
                 <SelectContent>
@@ -798,14 +808,19 @@ export default function Dashboard({ data }: DashboardProps) {
                   ))}
                 </SelectContent>
               </Select>
-              <Button variant="outline" size="sm" onClick={() => setLineFilters({ country: "all", year: "all" })}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setLineFilters({ country: "all", year: "all" })}
+                className="w-full sm:w-auto"
+              >
                 Limpiar
               </Button>
             </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="bg-purple-50 p-3 rounded text-center">
+              <div className="bg-purple-50 p-2 md:p-3 rounded text-center">
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <div className="font-bold text-purple-600">
@@ -821,11 +836,11 @@ export default function Dashboard({ data }: DashboardProps) {
                   </div>
                 </div>
               </div>
-              <ResponsiveContainer width="100%" height={350}>
+              <ResponsiveContainer width="100%" height={250}>
                 <LineChart data={chartData.lineChart}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="year" />
-                  <YAxis />
+                  <XAxis dataKey="year" fontSize={12} />
+                  <YAxis fontSize={12} />
                   <Tooltip
                     formatter={(value, name) => [`${value} GW`, name]}
                     labelFormatter={(label) => `Año: ${label}`}
@@ -861,17 +876,17 @@ export default function Dashboard({ data }: DashboardProps) {
         {/* Gráfico de Área - Bottom Right */}
         <Card className="h-fit">
           <CardHeader>
-            <CardTitle className="text-lg">📊 Producción Moderna de Energía Renovable</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-base md:text-lg">📊 Producción Moderna de Energía Renovable</CardTitle>
+            <CardDescription className="text-sm">
               Evolución histórica completa por fuente: Biomasa, Solar, Eólica e Hidroeléctrica (TWh)
             </CardDescription>
             {/* Filtros para Gráfico de Área */}
-            <div className="flex gap-2 mt-4">
+            <div className="flex flex-col sm:flex-row gap-2 mt-4">
               <Select
                 value={areaFilters.country}
                 onValueChange={(value) => setAreaFilters((prev) => ({ ...prev, country: value }))}
               >
-                <SelectTrigger className="w-40">
+                <SelectTrigger className="w-full sm:w-40">
                   <SelectValue placeholder="País" />
                 </SelectTrigger>
                 <SelectContent>
@@ -887,7 +902,7 @@ export default function Dashboard({ data }: DashboardProps) {
                 value={areaFilters.year}
                 onValueChange={(value) => setAreaFilters((prev) => ({ ...prev, year: value }))}
               >
-                <SelectTrigger className="w-32">
+                <SelectTrigger className="w-full sm:w-32">
                   <SelectValue placeholder="Año" />
                 </SelectTrigger>
                 <SelectContent>
@@ -899,14 +914,19 @@ export default function Dashboard({ data }: DashboardProps) {
                   ))}
                 </SelectContent>
               </Select>
-              <Button variant="outline" size="sm" onClick={() => setAreaFilters({ country: "all", year: "all" })}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setAreaFilters({ country: "all", year: "all" })}
+                className="w-full sm:w-auto"
+              >
                 Limpiar
               </Button>
             </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="bg-orange-50 p-3 rounded text-center">
+              <div className="bg-orange-50 p-2 md:p-3 rounded text-center">
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <div className="font-bold text-orange-600">
@@ -926,11 +946,11 @@ export default function Dashboard({ data }: DashboardProps) {
                   </div>
                 </div>
               </div>
-              <ResponsiveContainer width="100%" height={350}>
+              <ResponsiveContainer width="100%" height={250}>
                 <AreaChart data={chartData.areaChart}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="year" />
-                  <YAxis />
+                  <XAxis dataKey="year" fontSize={12} />
+                  <YAxis fontSize={12} />
                   <Tooltip
                     formatter={(value, name) => [`${value} TWh`, name]}
                     labelFormatter={(label) => `Año: ${label}`}

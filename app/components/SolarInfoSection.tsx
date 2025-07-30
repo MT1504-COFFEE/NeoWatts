@@ -211,7 +211,8 @@ export default function SolarInfoSection() {
             Nuestro grupo está conformado por:{" "}
             <span className="font-bold text-white">Juan Camilo Gonzales, Juan Esteban Galvis, Manuela López, Stefany Restrepo</span> y{" "}
             <span className="font-bold text-white">Mathius Lozano</span>, unidos por conocer más sobre energías renovables y dar a 
-            conocer su potencial (Informacion sacada de los archivos dados y informacion consultada de: - ).
+            conocer su potencial (Informacion sacada de los archivos dados y informacion consultada de: <a href="https://datos.bancomundial.org/indicador/EG.ELC.RNEW.ZS">Energía renovable (Banco Mundial)</a>
+            <a href="https://www.mapfreglobalrisks.com/gerencia-riesgos-seguros/articulos/energias-renovables-tendencias-en-latinoamerica/"> - Tendencias en Latinoamérica (Energias renovables)</a>).
           </p>
         </CardContent>
       </Card>

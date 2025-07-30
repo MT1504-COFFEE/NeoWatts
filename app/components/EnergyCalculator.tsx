@@ -202,10 +202,13 @@ export default function EnergyCalculator({ data }: EnergyCalculatorProps) {
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Formulario */}
-          <div className="grid md:grid-cols-2 gap-6">
+          {/* Formulario - RESPONSIVE */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
             <div className="space-y-4">
               <div>
-                <Label htmlFor="consumption">Consumo Eléctrico Mensual (kWh)</Label>
+                <Label htmlFor="consumption" className="text-sm md:text-base">
+                  Consumo Eléctrico Mensual (kWh)
+                </Label>
                 <Input
                   id="consumption"
                   type="number"
@@ -217,7 +220,9 @@ export default function EnergyCalculator({ data }: EnergyCalculatorProps) {
               </div>
 
               <div>
-                <Label htmlFor="country">País</Label>
+                <Label htmlFor="country" className="text-sm md:text-base">
+                  País
+                </Label>
                 <Select value={selectedCountry} onValueChange={setSelectedCountry}>
                   <SelectTrigger className="mt-1">
                     <SelectValue placeholder="Selecciona un país" />
@@ -233,7 +238,9 @@ export default function EnergyCalculator({ data }: EnergyCalculatorProps) {
               </div>
 
               <div>
-                <Label htmlFor="year">Año</Label>
+                <Label htmlFor="year" className="text-sm md:text-base">
+                  Año
+                </Label>
                 <Select value={selectedYear} onValueChange={setSelectedYear}>
                   <SelectTrigger className="mt-1">
                     <SelectValue placeholder="Selecciona un año" />
@@ -257,17 +264,17 @@ export default function EnergyCalculator({ data }: EnergyCalculatorProps) {
               </Button>
             </div>
 
-            {/* Información adicional */}
-            <div className="bg-blue-50 rounded-lg p-6">
-              <h3 className="font-semibold text-blue-800 mb-3">💡 ¿Cómo funciona?</h3>
-              <ul className="text-sm text-blue-700 space-y-2">
+            {/* Información adicional - RESPONSIVE */}
+            <div className="bg-blue-50 rounded-lg p-4 md:p-6">
+              <h3 className="font-semibold text-blue-800 mb-3 text-sm md:text-base">💡 ¿Cómo funciona?</h3>
+              <ul className="text-xs md:text-sm text-blue-700 space-y-2">
                 <li>• Ingresa tu consumo eléctrico mensual en kWh</li>
                 <li>• Selecciona tu país y el año de referencia</li>
                 <li>• El cálculo se basa en el mix energético nacional real</li>
                 <li>• Obtienes el porcentaje total de energía renovable</li>
               </ul>
 
-              <div className="mt-4 p-3 bg-white rounded border-l-4 border-blue-500">
+              <div className="mt-4 p-2 md:p-3 bg-white rounded border-l-4 border-blue-500">
                 <p className="text-xs text-gray-600">
                   <strong>Datos automáticos:</strong> La calculadora usa automáticamente el dataset más completo con
                   datos reales del mix energético de {countries.length} países latinoamericanos desde{" "}
@@ -287,49 +294,56 @@ export default function EnergyCalculator({ data }: EnergyCalculatorProps) {
               </Alert>
 
               {/* Resultado principal */}
+              {/* Resultado principal - RESPONSIVE */}
               <Card className="border-l-4 border-l-green-500">
                 <CardHeader>
-                  <CardTitle className="text-2xl text-green-700">
+                  <CardTitle className="text-xl md:text-2xl text-green-700">
                     {result.renewablePercentage.toFixed(1)}% Renovable
                   </CardTitle>
-                  <CardDescription>De tu consumo de {consumption} kWh/mes</CardDescription>
+                  <CardDescription className="text-sm md:text-base">
+                    De tu consumo de {consumption} kWh/mes
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
                     <div className="space-y-3">
-                      <div className="flex justify-between items-center p-3 bg-green-100 rounded">
-                        <span className="font-medium">Energía Renovable:</span>
-                        <span className="font-bold text-green-700">{result.renewableConsumption.toFixed(1)} kWh</span>
+                      <div className="flex justify-between items-center p-2 md:p-3 bg-green-100 rounded">
+                        <span className="font-medium text-sm md:text-base">Energía Renovable:</span>
+                        <span className="font-bold text-green-700 text-sm md:text-base">
+                          {result.renewableConsumption.toFixed(1)} kWh
+                        </span>
                       </div>
-                      <div className="flex justify-between items-center p-3 bg-gray-100 rounded">
-                        <span className="font-medium">Energía Convencional:</span>
-                        <span className="font-bold text-gray-700">{result.conventionalConsumption.toFixed(1)} kWh</span>
+                      <div className="flex justify-between items-center p-2 md:p-3 bg-gray-100 rounded">
+                        <span className="font-medium text-sm md:text-base">Energía Convencional:</span>
+                        <span className="font-bold text-gray-700 text-sm md:text-base">
+                          {result.conventionalConsumption.toFixed(1)} kWh
+                        </span>
                       </div>
                     </div>
 
-                    {/* Gráfico de barras simple */}
+                    {/* Gráfico de barras simple - RESPONSIVE */}
                     <div className="space-y-2">
-                      <div className="text-sm font-medium">Distribución de tu consumo:</div>
+                      <div className="text-xs md:text-sm font-medium">Distribución de tu consumo:</div>
                       <div className="space-y-2">
                         <div className="flex items-center">
-                          <div className="w-16 text-xs">Renovable</div>
-                          <div className="flex-1 bg-gray-200 rounded-full h-4 mx-2">
+                          <div className="w-12 md:w-16 text-xs">Renovable</div>
+                          <div className="flex-1 bg-gray-200 rounded-full h-3 md:h-4 mx-2">
                             <div
-                              className="bg-green-500 h-4 rounded-full transition-all duration-500"
+                              className="bg-green-500 h-3 md:h-4 rounded-full transition-all duration-500"
                               style={{ width: `${result.renewablePercentage}%` }}
                             ></div>
                           </div>
-                          <div className="w-12 text-xs text-right">{result.renewablePercentage.toFixed(1)}%</div>
+                          <div className="w-8 md:w-12 text-xs text-right">{result.renewablePercentage.toFixed(1)}%</div>
                         </div>
                         <div className="flex items-center">
-                          <div className="w-16 text-xs">Convencional</div>
-                          <div className="flex-1 bg-gray-200 rounded-full h-4 mx-2">
+                          <div className="w-12 md:w-16 text-xs">Convencional</div>
+                          <div className="flex-1 bg-gray-200 rounded-full h-3 md:h-4 mx-2">
                             <div
-                              className="bg-gray-500 h-4 rounded-full transition-all duration-500"
+                              className="bg-gray-500 h-3 md:h-4 rounded-full transition-all duration-500"
                               style={{ width: `${100 - result.renewablePercentage}%` }}
                             ></div>
                           </div>
-                          <div className="w-12 text-xs text-right">
+                          <div className="w-8 md:w-12 text-xs text-right">
                             {(100 - result.renewablePercentage).toFixed(1)}%
                           </div>
                         </div>

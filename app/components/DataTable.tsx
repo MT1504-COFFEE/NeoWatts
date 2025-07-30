@@ -88,8 +88,8 @@ export default function DataTable({ data }: DataTableProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {/* Controles de filtrado y búsqueda */}
-          <div className="flex flex-col md:flex-row gap-4 mb-6">
+          {/* Controles de filtrado y búsqueda - RESPONSIVE */}
+          <div className="flex flex-col space-y-4 md:space-y-0 md:flex-row md:gap-4 mb-6">
             <div className="flex-1">
               <Input
                 placeholder="Buscar por país o año..."
@@ -115,25 +115,25 @@ export default function DataTable({ data }: DataTableProps) {
             </div>
           </div>
 
-          {/* Tabla */}
+          {/* Tabla - RESPONSIVE */}
           <div className="overflow-x-auto border rounded-lg">
-            <table className="w-full">
+            <table className="w-full min-w-[600px]">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-3 text-left">
+                  <th className="px-2 md:px-4 py-3 text-left">
                     <Button
                       variant="ghost"
                       onClick={() => handleSort("year")}
-                      className="font-semibold hover:bg-gray-100"
+                      className="font-semibold hover:bg-gray-100 text-xs md:text-sm"
                     >
                       Año {sortField === "year" && (sortDirection === "asc" ? "↑" : "↓")}
                     </Button>
                   </th>
-                  <th className="px-4 py-3 text-left">
+                  <th className="px-2 md:px-4 py-3 text-left">
                     <Button
                       variant="ghost"
                       onClick={() => handleSort("country")}
-                      className="font-semibold hover:bg-gray-100"
+                      className="font-semibold hover:bg-gray-100 text-xs md:text-sm"
                     >
                       País {sortField === "country" && (sortDirection === "asc" ? "↑" : "↓")}
                     </Button>
@@ -142,7 +142,7 @@ export default function DataTable({ data }: DataTableProps) {
                     <Button
                       variant="ghost"
                       onClick={() => handleSort("wind-generation")}
-                      className="font-semibold hover:bg-gray-100 text-xs"
+                      className="font-semibold hover:bg-gray-100 text-xs md:text-sm"
                     >
                       Eólica {sortField === "wind-generation" && (sortDirection === "asc" ? "↑" : "↓")}
                     </Button>
@@ -151,7 +151,7 @@ export default function DataTable({ data }: DataTableProps) {
                     <Button
                       variant="ghost"
                       onClick={() => handleSort("solar-energy-consumption")}
-                      className="font-semibold hover:bg-gray-100 text-xs"
+                      className="font-semibold hover:bg-gray-100 text-xs md:text-sm"
                     >
                       Solar {sortField === "solar-energy-consumption" && (sortDirection === "asc" ? "↑" : "↓")}
                     </Button>
@@ -160,7 +160,7 @@ export default function DataTable({ data }: DataTableProps) {
                     <Button
                       variant="ghost"
                       onClick={() => handleSort("hydropower-consumption")}
-                      className="font-semibold hover:bg-gray-100 text-xs"
+                      className="font-semibold hover:bg-gray-100 text-xs md:text-sm"
                     >
                       Hidro {sortField === "hydropower-consumption" && (sortDirection === "asc" ? "↑" : "↓")}
                     </Button>
@@ -169,7 +169,7 @@ export default function DataTable({ data }: DataTableProps) {
                     <Button
                       variant="ghost"
                       onClick={() => handleSort("share-electricity-renewables")}
-                      className="font-semibold hover:bg-gray-100 text-xs"
+                      className="font-semibold hover:bg-gray-100 text-xs md:text-sm"
                     >
                       % Renovable{" "}
                       {sortField === "share-electricity-renewables" && (sortDirection === "asc" ? "↑" : "↓")}
@@ -180,12 +180,16 @@ export default function DataTable({ data }: DataTableProps) {
               <tbody>
                 {paginatedData.map((item, index) => (
                   <tr key={`${item.country}-${item.year}-${index}`} className="border-t hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium">{item.year}</td>
-                    <td className="px-4 py-3">{item.country}</td>
-                    <td className="px-4 py-3 text-right">{item["wind-generation"].toFixed(1)}</td>
-                    <td className="px-4 py-3 text-right">{item["solar-energy-consumption"].toFixed(1)}</td>
-                    <td className="px-4 py-3 text-right">{item["hydropower-consumption"].toFixed(1)}</td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-2 md:px-4 py-3 font-medium text-xs md:text-sm">{item.year}</td>
+                    <td className="px-2 md:px-4 py-3 text-xs md:text-sm">{item.country}</td>
+                    <td className="px-4 py-3 text-right text-xs md:text-sm">{item["wind-generation"].toFixed(1)}</td>
+                    <td className="px-4 py-3 text-right text-xs md:text-sm">
+                      {item["solar-energy-consumption"].toFixed(1)}
+                    </td>
+                    <td className="px-4 py-3 text-right text-xs md:text-sm">
+                      {item["hydropower-consumption"].toFixed(1)}
+                    </td>
+                    <td className="px-4 py-3 text-right text-xs md:text-sm">
                       {/* CORREGIDO: Solo mostrar % si se puede calcular correctamente */}
                       {item["share-electricity-renewables"] === -1 ? (
                         <span className="px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600">N/A</span>
