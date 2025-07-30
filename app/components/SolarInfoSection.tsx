@@ -1,5 +1,6 @@
 "use client"
 
+import type React from "react"
 import { useState, useEffect, useRef, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -114,13 +115,94 @@ export default function SolarInfoSection() {
     }, 10000)
   }, [energyBanners.length])
 
+  const touchStartX = useRef(0)
+  const touchStartY = useRef(0)
+  const isDragging = useRef(false)
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX
+    touchStartY.current = e.touches[0].clientY
+    isDragging.current = false
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging.current) {
+      const deltaX = Math.abs(e.touches[0].clientX - touchStartX.current)
+      const deltaY = Math.abs(e.touches[0].clientY - touchStartY.current)
+
+      // Si el movimiento horizontal es mayor que el vertical, es un swipe horizontal
+      if (deltaX > deltaY && deltaX > 10) {
+        isDragging.current = true
+        // Prevenir el scroll de la página
+        e.preventDefault()
+      }
+    } else {
+      // Prevenir el scroll mientras se hace swipe
+      e.preventDefault()
+    }
+  }
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!isDragging.current) return
+
+    const touchEndX = e.changedTouches[0].clientX
+    const deltaX = touchEndX - touchStartX.current
+    const swipeThreshold = 50 // Minimum swipe distance in pixels
+
+    if (Math.abs(deltaX) > swipeThreshold) {
+      if (deltaX > 0) {
+        // Swiped right (previous banner)
+        setCurrentBannerIndex((prevIndex) => (prevIndex - 1 + energyBanners.length) % energyBanners.length)
+      } else {
+        // Swiped left (next banner)
+        setCurrentBannerIndex((prevIndex) => (prevIndex + 1) % energyBanners.length)
+      }
+      resetAutoplay()
+    }
+
+    isDragging.current = false
+  }
+
+  // For trackpad/mouse drag simulation
+  const handleMouseDown = (e: React.MouseEvent) => {
+    touchStartX.current = e.clientX
+  }
+
+  const handleMouseUp = (e: React.MouseEvent) => {
+    const mouseEndX = e.clientX
+    const deltaX = mouseEndX - touchStartX.current
+    const dragThreshold = 50 // Minimum drag distance in pixels
+
+    if (deltaX > dragThreshold) {
+      setCurrentBannerIndex((prevIndex) => (prevIndex - 1 + energyBanners.length) % energyBanners.length)
+      resetAutoplay()
+    } else if (deltaX < -dragThreshold) {
+      setCurrentBannerIndex((prevIndex) => (prevIndex + 1) % energyBanners.length)
+      resetAutoplay()
+    }
+  }
+
   useEffect(() => {
     resetAutoplay()
+
+    // Keyboard navigation
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "ArrowLeft") {
+        setCurrentBannerIndex((prevIndex) => (prevIndex - 1 + energyBanners.length) % energyBanners.length)
+        resetAutoplay() // Reset autoplay on manual interaction
+      } else if (event.key === "ArrowRight") {
+        setCurrentBannerIndex((prevIndex) => (prevIndex + 1) % energyBanners.length)
+        resetAutoplay() // Reset autoplay on manual interaction
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
 
     return () => {
       if (autoplayIntervalRef.current) {
         clearInterval(autoplayIntervalRef.current)
       }
+      window.removeEventListener("keydown", handleKeyDown)
     }
   }, [resetAutoplay])
 
@@ -153,7 +235,7 @@ export default function SolarInfoSection() {
   return (
     <div className="space-y-8">
       {/* About Us Section */}
-      <Card className="bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg">
+      <Card className="bg-gradient-to-r from-green-600 to-blue-600 text-white shadow-lg">
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center space-x-3 text-2xl md:text-3xl font-bold">
             <span className="text-3xl md:text-4xl">ℹ️</span>
@@ -171,8 +253,7 @@ export default function SolarInfoSection() {
             <span className="font-bold text-white">
               Juan Camilo Gonzales, Juan Esteban Galvis, Manuela López, Stefany Restrepo
             </span>{" "}
-            y <span className="font-bold text-white">Mathius Lozano</span>, unidos por conocer más sobre energías
-            renovables y dar a conocer su potencial (Informacion sacada de los archivos dados y informacion consultada
+            y <span className="font-bold text-white">Mathius Lozano</span>, (Informacion sacada de los archivos dados y informacion consultada
             de: <a href="https://datos.bancomundial.org/indicador/EG.ELC.RNEW.ZS">Energía renovable (Banco Mundial)</a>
             <a href="https://www.mapfreglobalrisks.com/gerencia-riesgos-seguros/articulos/energias-renovables-tendencias-en-latinoamerica/">
               {" "}
@@ -304,6 +385,12 @@ export default function SolarInfoSection() {
       {/* Hero Section - Dynamic Banner */}
       <div
         className={`relative bg-gradient-to-r ${currentBanner.gradient} rounded-xl md:rounded-2xl p-4 md:p-8 text-white overflow-hidden transition-all duration-1500 ease-in-out`}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onMouseDown={handleMouseDown}
+        onMouseUp={handleMouseUp}
+        style={{ cursor: "grab" }}
       >
         <div className="absolute inset-0 bg-black bg-opacity-20"></div>
         <div key={currentBanner.key} className="relative z-10 transition-opacity duration-700 ease-in-out">
@@ -332,6 +419,27 @@ export default function SolarInfoSection() {
               </ul>
             </div>
           </div>
+        </div>
+        {/* Navigation indicators */}
+        <div className="flex justify-center space-x-2 mt-6">
+          {energyBanners.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => {
+                setCurrentBannerIndex(index)
+                resetAutoplay()
+              }}
+              className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                index === currentBannerIndex ? "bg-white" : "bg-white bg-opacity-50"
+              }`}
+              aria-label={`Go to banner ${index + 1}`}
+            />
+          ))}
+        </div>
+
+        {/* Keyboard navigation hint */}
+        <div className="text-center mt-4 opacity-75">
+          <p className="text-xs md:text-sm">Usa las flechas del teclado ← → para navegar | Desliza en móvil</p>
         </div>
       </div>
 
