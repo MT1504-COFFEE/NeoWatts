@@ -213,8 +213,8 @@ export default function SolarInfoSection() {
     setTimeout(() => {
       try {
         const link = document.createElement("a")
-        link.href = "/docs/documentacion-codigo-dashboard.pdf"
-        link.download = "Documentacion-Dashboard-Energia-Renovable.pdf"
+        link.href = "/docs/PROYECTO_FINAL_DE_PROGRAMACIÓN_DOCUMENTACION.pdf"
+        link.download = "Documento-NeoWatts-Energia-Renovable.pdf"
         link.target = "_blank"
 
         document.body.appendChild(link)
@@ -265,13 +265,13 @@ export default function SolarInfoSection() {
       </Card>
 
       {/* Documentación del Código */}
-      <Card className="border-2 border-purple-200 bg-gradient-to-r from-purple-50 to-indigo-50">
+      <Card className="border-2 border-green-200 bg-gradient-to-r from-green-50 to-indigo-50">
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2 text-purple-800">
+          <CardTitle className="flex items-center space-x-2 text-white-800">
             <span className="text-xl md:text-2xl">📚</span>
             <span className="text-lg md:text-xl">Documentación del Código</span>
           </CardTitle>
-          <CardDescription className="text-purple-600 text-sm md:text-base">
+          <CardDescription className="text-white-600 text-sm md:text-base">
             Descarga la documentación técnica completa del Dashboard de Energía Renovable
           </CardDescription>
         </CardHeader>
@@ -284,7 +284,7 @@ export default function SolarInfoSection() {
                   ? "border-green-500 bg-green-50"
                   : downloadStatus === "error"
                     ? "border-red-500 bg-red-50"
-                    : "border-purple-300 hover:border-purple-500 bg-white"
+                    : "border-green-300 hover:border-green-500 bg-white"
             }`}
             onClick={downloadStatus === "idle" ? handleDownloadDocumentation : undefined}
           >
@@ -300,7 +300,7 @@ export default function SolarInfoSection() {
                             ? "bg-green-100 text-green-600"
                             : downloadStatus === "error"
                               ? "bg-red-100 text-red-600"
-                              : "bg-purple-100 text-purple-600"
+                              : "bg-green-100 text-green-600"
                       }`}
                     >
                       {downloadStatus === "downloading" ? (
@@ -317,21 +317,21 @@ export default function SolarInfoSection() {
                   <div className="flex-1 min-w-0">
                     <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-2">Documentación Técnica Completa</h3>
                     <p className="text-sm md:text-base text-gray-600 mb-3">
-                      Guía completa del código fuente, arquitectura, componentes y funcionalidades del dashboard
+                      Guía del código fuente, componentes y funcionalidades del dashboard
                     </p>
                     <div className="flex flex-wrap items-center gap-2 md:gap-4">
                       <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">
                         PDF
                       </Badge>
-                      <span className="text-xs text-gray-500">~2.5 MB</span>
-                      <span className="text-xs text-gray-500">45+ páginas</span>
-                      <Badge className="text-xs bg-purple-100 text-purple-800">Técnico</Badge>
+                      <span className="text-xs text-gray-500">~771 KB</span>
+                      <span className="text-xs text-gray-500">8 páginas</span>
+                      <Badge className="text-xs bg-green-100 text-green-800">Técnico</Badge>
                     </div>
                   </div>
                 </div>
                 <div className="flex-shrink-0 w-full md:w-auto md:ml-4">
                   {downloadStatus === "idle" && (
-                    <Button className="w-full md:w-auto bg-purple-600 hover:bg-purple-700 text-white">
+                    <Button className="w-full md:w-auto bg-green-600 hover:bg-green-700 text-white">
                       <span className="mr-2">📥</span>
                       Descargar PDF
                     </Button>
@@ -450,7 +450,7 @@ export default function SolarInfoSection() {
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
           {benefits.map((benefit, index) => (
-            <Card key={index} className="hover:shadow-lg transition-shadow duration-300 border-l-4 border-l-yellow-500">
+            <Card key={index} className="hover:shadow-lg transition-shadow duration-300 border-l-4 border-l-green-500">
               <CardHeader className="text-center p-4 md:p-6">
                 <div className="text-3xl md:text-4xl mb-2">{benefit.icon}</div>
                 <CardTitle className="text-base md:text-lg">{benefit.title}</CardTitle>
