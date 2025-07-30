@@ -1,37 +1,77 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { loadCSVFile } from "../data/datasets"
 import type { RenewableEnergyData } from "../types/energy"
 
 interface EnergyCalculatorProps {
-  data: RenewableEnergyData[]
+  data?: RenewableEnergyData[] // Opcional, ya no se usa
 }
 
 export default function EnergyCalculator({ data }: EnergyCalculatorProps) {
+  // Estado interno para los datos de la calculadora
+  const [calculatorData, setCalculatorData] = useState<RenewableEnergyData[]>([])
+  const [isLoadingData, setIsLoadingData] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
+
+  // Estados del formulario
   const [consumption, setConsumption] = useState("")
   const [selectedCountry, setSelectedCountry] = useState("")
   const [selectedYear, setSelectedYear] = useState("")
   const [result, setResult] = useState<{
     renewablePercentage: number
     renewableConsumption: number
-    totalRenewableProduction: number
-    breakdown: { source: string; percentage: number; consumption: number }[]
+    conventionalConsumption: number
+    totalConsumption: number
   } | null>(null)
 
-  // Obtener países y años únicos
-  const countries = useMemo(() => {
-    return [...new Set(data.map((item) => item.country))].sort()
-  }, [data])
+  // Cargar automáticamente el dataset compatible al montar el componente
+  useEffect(() => {
+    const loadCalculatorData = async () => {
+      try {
+        setIsLoadingData(true)
+        setLoadError(null)
 
-  const years = useMemo(() => {
-    return [...new Set(data.map((item) => item.year))].sort((a, b) => b - a)
-  }, [data])
+        // Cargar automáticamente el único dataset compatible
+        const data = await loadCSVFile("latam-renewable-production")
+
+        // Filtrar solo datos que tienen porcentaje renovable calculable
+        const validData = data.filter((item) => item["share-electricity-renewables"] !== -1)
+
+        setCalculatorData(validData)
+
+        if (validData.length === 0) {
+          setLoadError("No se encontraron datos válidos en el dataset")
+        }
+      } catch (error) {
+        console.error("Error cargando datos de la calculadora:", error)
+        setLoadError("Error al cargar los datos de la calculadora")
+      } finally {
+        setIsLoadingData(false)
+      }
+    }
+
+    loadCalculatorData()
+  }, [])
+
+  // Obtener países y años únicos de los datos cargados automáticamente
+  const { countries, years } = useMemo(() => {
+    if (calculatorData.length === 0) return { countries: [], years: [] }
+
+    const uniqueCountries = [...new Set(calculatorData.map((item) => item.country))].sort()
+    const uniqueYears = [...new Set(calculatorData.map((item) => item.year))].sort((a, b) => b - a)
+
+    return {
+      countries: uniqueCountries,
+      years: uniqueYears,
+    }
+  }, [calculatorData])
 
   const calculateRenewablePercentage = () => {
     if (!consumption || !selectedCountry || !selectedYear) {
@@ -44,56 +84,95 @@ export default function EnergyCalculator({ data }: EnergyCalculatorProps) {
     }
 
     // Encontrar datos para el país y año seleccionados
-    const countryData = data.find(
-      (item) => item.country === selectedCountry && item.year === Number.parseInt(selectedYear),
+    const countryData = calculatorData.find(
+      (item) =>
+        item.country === selectedCountry &&
+        item.year === Number.parseInt(selectedYear) &&
+        item["share-electricity-renewables"] !== -1,
     )
 
     if (!countryData) {
       return
     }
 
-    // Calcular la producción total de energía renovable
-    const renewableSources = [
-      { name: "Eólica", value: countryData["wind-generation"], share: countryData["share-electricity-wind"] },
-      { name: "Solar", value: countryData["solar-energy-consumption"], share: countryData["share-electricity-solar"] },
-      {
-        name: "Hidroeléctrica",
-        value: countryData["hydropower-consumption"],
-        share: countryData["share-electricity-hydro"],
-      },
-      { name: "Biocombustibles", value: countryData["biofuel-production"], share: 0 },
-      { name: "Geotérmica", value: countryData["installed-geothermal-capacity"], share: 0 },
-    ]
-
-    const totalRenewableProduction = renewableSources.reduce((sum, source) => sum + source.value, 0)
     const renewablePercentage = countryData["share-electricity-renewables"]
     const renewableConsumption = (consumptionValue * renewablePercentage) / 100
-
-    // Calcular desglose por fuente
-    const breakdown = renewableSources
-      .map((source) => ({
-        source: source.name,
-        percentage: source.share || (source.value / totalRenewableProduction) * renewablePercentage,
-        consumption:
-          (consumptionValue * (source.share || (source.value / totalRenewableProduction) * renewablePercentage)) / 100,
-      }))
-      .filter((item) => item.percentage > 0)
+    const conventionalConsumption = consumptionValue - renewableConsumption
 
     setResult({
       renewablePercentage,
       renewableConsumption,
-      totalRenewableProduction,
-      breakdown,
+      conventionalConsumption,
+      totalConsumption: consumptionValue,
     })
   }
 
-  if (data.length === 0) {
+  // Estado de carga inicial
+  if (isLoadingData) {
     return (
       <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <span>🧮</span>
+            <span>Calculadora de Energía Renovable</span>
+          </CardTitle>
+          <CardDescription>
+            Cargando datos automáticamente del dataset "Producción Renovable América Latina"
+          </CardDescription>
+        </CardHeader>
         <CardContent className="text-center py-12">
-          <div className="text-6xl mb-4">🧮</div>
-          <h3 className="text-xl font-semibold text-gray-600 mb-2">Calculadora no disponible</h3>
-          <p className="text-gray-500">Carga datos desde la pestaña "Cargar Datos" para usar la calculadora</p>
+          <div className="flex flex-col items-center space-y-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-green-500"></div>
+            <h3 className="text-lg font-semibold text-gray-700">Cargando Calculadora</h3>
+            <p className="text-gray-600">Preparando datos de energía renovable...</p>
+            <div className="bg-blue-50 p-3 rounded-lg max-w-md">
+              <p className="text-xs text-blue-700">
+                ✨ <strong>Carga automática:</strong> La calculadora usa automáticamente el dataset más completo con
+                porcentajes reales del mix energético de América Latina.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  // Error al cargar datos
+  if (loadError) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <span>🧮</span>
+            <span>Calculadora de Energía Renovable</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="text-center py-12">
+          <div className="text-6xl mb-4">❌</div>
+          <h3 className="text-xl font-semibold text-red-600 mb-2">Error al cargar datos</h3>
+          <p className="text-red-700 mb-4">{loadError}</p>
+          <Button onClick={() => window.location.reload()} className="bg-red-600 hover:bg-red-700">
+            Reintentar
+          </Button>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  // Sin datos válidos
+  if (calculatorData.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <span>🧮</span>
+            <span>Calculadora de Energía Renovable</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="text-center py-12">
+          <div className="text-6xl mb-4">📊</div>
+          <h3 className="text-xl font-semibold text-gray-600 mb-2">Sin datos disponibles</h3>
+          <p className="text-gray-500">No se encontraron datos válidos para la calculadora</p>
         </CardContent>
       </Card>
     )
@@ -110,6 +189,16 @@ export default function EnergyCalculator({ data }: EnergyCalculatorProps) {
           <CardDescription>
             Calcula qué porcentaje de tu consumo eléctrico proviene de fuentes renovables
           </CardDescription>
+          {/* Indicador de datos cargados */}
+          <div className="bg-green-50 border border-green-200 p-3 rounded-lg">
+            <div className="flex items-center space-x-2">
+              <span className="text-green-600">✅</span>
+              <span className="text-sm text-green-800">
+                <strong>Datos cargados:</strong> {calculatorData.length.toLocaleString()} registros del dataset
+                "Producción Renovable América Latina" ({countries.length} países, {years.length} años)
+              </span>
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Formulario */}
@@ -174,14 +263,15 @@ export default function EnergyCalculator({ data }: EnergyCalculatorProps) {
               <ul className="text-sm text-blue-700 space-y-2">
                 <li>• Ingresa tu consumo eléctrico mensual en kWh</li>
                 <li>• Selecciona tu país y el año de referencia</li>
-                <li>• El cálculo se basa en el mix energético nacional</li>
-                <li>• Obtienes el desglose por fuente renovable</li>
+                <li>• El cálculo se basa en el mix energético nacional real</li>
+                <li>• Obtienes el porcentaje total de energía renovable</li>
               </ul>
 
               <div className="mt-4 p-3 bg-white rounded border-l-4 border-blue-500">
                 <p className="text-xs text-gray-600">
-                  <strong>Nota:</strong> Los cálculos son estimaciones basadas en datos históricos del mix energético
-                  nacional. El consumo real puede variar según la región y proveedor.
+                  <strong>Datos automáticos:</strong> La calculadora usa automáticamente el dataset más completo con
+                  datos reales del mix energético de {countries.length} países latinoamericanos desde{" "}
+                  {Math.min(...years)} hasta {Math.max(...years)}.
                 </p>
               </div>
             </div>
@@ -213,9 +303,7 @@ export default function EnergyCalculator({ data }: EnergyCalculatorProps) {
                       </div>
                       <div className="flex justify-between items-center p-3 bg-gray-100 rounded">
                         <span className="font-medium">Energía Convencional:</span>
-                        <span className="font-bold text-gray-700">
-                          {(Number.parseFloat(consumption) - result.renewableConsumption).toFixed(1)} kWh
-                        </span>
+                        <span className="font-bold text-gray-700">{result.conventionalConsumption.toFixed(1)} kWh</span>
                       </div>
                     </div>
 
@@ -251,38 +339,34 @@ export default function EnergyCalculator({ data }: EnergyCalculatorProps) {
                 </CardContent>
               </Card>
 
-              {/* Desglose por fuente */}
+              {/* Información adicional sobre el mix energético */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Desglose por Fuente Renovable</CardTitle>
-                  <CardDescription>Distribución de tu consumo renovable por tipo de fuente</CardDescription>
+                  <CardTitle>Información del Mix Energético</CardTitle>
+                  <CardDescription>
+                    Datos del mix energético nacional para {selectedCountry} en {selectedYear}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    {result.breakdown.map((item, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                        <div className="flex items-center space-x-3">
-                          <div
-                            className={`w-4 h-4 rounded-full ${
-                              item.source === "Solar"
-                                ? "bg-yellow-500"
-                                : item.source === "Eólica"
-                                  ? "bg-blue-500"
-                                  : item.source === "Hidroeléctrica"
-                                    ? "bg-cyan-500"
-                                    : item.source === "Biocombustibles"
-                                      ? "bg-green-600"
-                                      : "bg-orange-500"
-                            }`}
-                          ></div>
-                          <span className="font-medium">{item.source}</span>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-bold">{item.consumption.toFixed(1)} kWh</div>
-                          <div className="text-sm text-gray-600">{item.percentage.toFixed(1)}%</div>
-                        </div>
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <div className="grid md:grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <div className="font-semibold text-blue-800">País:</div>
+                        <div className="text-blue-700">{selectedCountry}</div>
                       </div>
-                    ))}
+                      <div>
+                        <div className="font-semibold text-blue-800">Año de referencia:</div>
+                        <div className="text-blue-700">{selectedYear}</div>
+                      </div>
+                      <div>
+                        <div className="font-semibold text-blue-800">% Renovable nacional:</div>
+                        <div className="text-blue-700">{result.renewablePercentage.toFixed(1)}%</div>
+                      </div>
+                      <div>
+                        <div className="font-semibold text-blue-800">% Convencional nacional:</div>
+                        <div className="text-blue-700">{(100 - result.renewablePercentage).toFixed(1)}%</div>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

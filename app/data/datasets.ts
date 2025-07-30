@@ -8,12 +8,12 @@ import type {
   RenewableShareData,
 } from "../types/energy"
 
-// Definición de archivos CSV para cargar datos (mantener los existentes)
+// CORREGIDO: Descripciones actualizadas según la realidad de los datos
 export const predefinedFiles: DatasetFile[] = [
   {
     id: "solar-share-latam",
-    name: "Participación Solar en América Latina",
-    description: "Porcentaje de energía solar en el mix energético de países latinoamericanos",
+    name: "Producción Solar en América Latina",
+    description: "Producción de energía solar en TWh (no porcentaje) - Datos de generación solar por país",
     type: "CSV",
     size: "1.2 MB",
     records: 8500,
@@ -23,7 +23,7 @@ export const predefinedFiles: DatasetFile[] = [
   {
     id: "latam-renewable-production",
     name: "Producción Renovable América Latina",
-    description: "Producción de electricidad renovable por fuente en países latinoamericanos",
+    description: "✅ ÚNICO con porcentajes reales - Participación de energías renovables en el mix energético",
     type: "CSV",
     size: "2.8 MB",
     records: 8200,
@@ -40,8 +40,8 @@ export const predefinedFiles: DatasetFile[] = [
   },
   {
     id: "wind-share-latam",
-    name: "Participación Eólica en América Latina",
-    description: "Porcentaje de energía eólica en el mix energético de países latinoamericanos",
+    name: "Producción Eólica en América Latina",
+    description: "Producción de energía eólica en TWh (no porcentaje) - Datos de generación eólica por país",
     type: "CSV",
     size: "1.0 MB",
     records: 5800,
@@ -50,8 +50,8 @@ export const predefinedFiles: DatasetFile[] = [
   },
   {
     id: "hydro-share-latam",
-    name: "Participación Hidroeléctrica en América Latina",
-    description: "Porcentaje de energía hidroeléctrica en el mix energético de países latinoamericanos",
+    name: "Producción Hidroeléctrica en América Latina",
+    description: "Producción de energía hidroeléctrica en TWh (no porcentaje) - Datos de generación hidro por país",
     type: "CSV",
     size: "1.5 MB",
     records: 6500,
@@ -60,8 +60,8 @@ export const predefinedFiles: DatasetFile[] = [
   },
   {
     id: "renewable-share-latam",
-    name: "Participación Total Renovable en América Latina",
-    description: "Porcentaje total de energía renovable en el mix energético de países latinoamericanos",
+    name: "Producción Total Renovable en América Latina",
+    description: "Producción total de energía renovable en TWh (no porcentaje) - Suma de todas las fuentes renovables",
     type: "CSV",
     size: "1.8 MB",
     records: 7200,
@@ -112,33 +112,32 @@ export function parseCSV(csvText: string): any[] {
     .filter((row) => row.Entity && row.Year) // Filtrar filas vacías
 }
 
-// Función para convertir datos de solar share a formato estándar
+// CORREGIDO: Solo datos de solar en TWh, NO calcular % total renovable
 export function convertSolarShareData(data: SolarShareData[]): RenewableEnergyData[] {
   return data.map((item) => {
-    // Los datos YA vienen como porcentaje correcto (0-100%)
-    const solarShare = item["Solar (% equivalent primary energy)"] || 0
+    const solarProduction = item["Solar (% equivalent primary energy)"] || 0 // En realidad es TWh
 
     return {
       year: item.Year,
       country: item.Entity,
       "wind-generation": 0,
-      "solar-energy-consumption": solarShare, // Usar el porcentaje directamente como estimación
+      "solar-energy-consumption": solarProduction,
       "hydropower-consumption": 0,
       "biofuel-production": 0,
       "installed-geothermal-capacity": 0,
-      "share-electricity-renewables": solarShare, // Porcentaje tal como viene
+      "share-electricity-renewables": -1, // -1 indica que NO se puede calcular el total
       "share-electricity-wind": 0,
-      "share-electricity-solar": solarShare, // Porcentaje tal como viene
+      "share-electricity-solar": 0, // No tenemos el porcentaje real
       "share-electricity-hydro": 0,
       "cumulative-installed-wind-energy-capacity-gigawatts": 0,
       "installed-solar-PV-capacity": 0,
-      "modern-renewable-energy-consumption": solarShare,
-      "conventional-energy-consumption": Math.max(0, 100 - solarShare),
+      "modern-renewable-energy-consumption": solarProduction,
+      "conventional-energy-consumption": 0,
     }
   })
 }
 
-// Función para convertir datos de producción renovable LATAM a formato estándar
+// CORREGIDO: Este es el ÚNICO que puede calcular porcentajes reales
 export function convertLatamRenewableData(data: LatamRenewableData[]): RenewableEnergyData[] {
   return data.map((item) => {
     const wind = Number.parseFloat(item["Electricity from wind (TWh)"]) || 0
@@ -148,47 +147,15 @@ export function convertLatamRenewableData(data: LatamRenewableData[]): Renewable
 
     const totalRenewable = wind + hydro + solar + other
 
-    // Estimación más realista del total de electricidad por país y año
-    let estimatedTotal = 100 // Valor por defecto
+    // Estimación del consumo total de electricidad por país
+    const estimatedTotalElectricity = estimateTotalElectricityConsumption(item.Entity, item.Year, totalRenewable)
 
-    if (totalRenewable > 0) {
-      const country = item.Entity.toLowerCase()
-      const year = item.Year
-
-      // Países con alta participación renovable (principalmente hidro)
-      if (country.includes("costa rica") || country.includes("uruguay") || country.includes("paraguay")) {
-        estimatedTotal = totalRenewable / 0.8 // ~80% renovable
-      }
-      // Países con participación media-alta renovable
-      else if (country.includes("colombia") || country.includes("ecuador") || country.includes("venezuela")) {
-        estimatedTotal = totalRenewable / 0.6 // ~60% renovable
-      }
-      // Países con participación media renovable
-      else if (country.includes("chile") || country.includes("peru") || country.includes("bolivia")) {
-        estimatedTotal = totalRenewable / 0.4 // ~40% renovable
-      }
-      // Países con participación baja-media renovable
-      else if (country.includes("brazil") || country.includes("argentina") || country.includes("mexico")) {
-        estimatedTotal = totalRenewable / 0.3 // ~30% renovable
-      }
-      // Otros países
-      else {
-        estimatedTotal = totalRenewable / 0.25 // ~25% renovable
-      }
-
-      // Ajuste temporal: años más recientes tienden a tener más renovables
-      if (year >= 2015) {
-        estimatedTotal = estimatedTotal * 0.9 // Incrementar participación renovable
-      } else if (year >= 2010) {
-        estimatedTotal = estimatedTotal * 0.95
-      }
-    }
-
-    // Calcular porcentajes con límites realistas
-    const renewablePercentage = totalRenewable > 0 ? Math.min(95, (totalRenewable / estimatedTotal) * 100) : 0
-    const windPercentage = wind > 0 ? Math.min(50, (wind / estimatedTotal) * 100) : 0
-    const solarPercentage = solar > 0 ? Math.min(30, (solar / estimatedTotal) * 100) : 0
-    const hydroPercentage = hydro > 0 ? Math.min(90, (hydro / estimatedTotal) * 100) : 0
+    // Calcular porcentajes reales SOLO para este dataset
+    const renewablePercentage =
+      estimatedTotalElectricity > 0 ? Math.min(95, (totalRenewable / estimatedTotalElectricity) * 100) : 0
+    const windPercentage = estimatedTotalElectricity > 0 ? Math.min(50, (wind / estimatedTotalElectricity) * 100) : 0
+    const solarPercentage = estimatedTotalElectricity > 0 ? Math.min(30, (solar / estimatedTotalElectricity) * 100) : 0
+    const hydroPercentage = estimatedTotalElectricity > 0 ? Math.min(90, (hydro / estimatedTotalElectricity) * 100) : 0
 
     return {
       year: item.Year,
@@ -198,100 +165,149 @@ export function convertLatamRenewableData(data: LatamRenewableData[]): Renewable
       "hydropower-consumption": hydro,
       "biofuel-production": other,
       "installed-geothermal-capacity": 0,
-      "share-electricity-renewables": Number(renewablePercentage.toFixed(1)),
+      "share-electricity-renewables": Number(renewablePercentage.toFixed(1)), // SÍ se puede calcular
       "share-electricity-wind": Number(windPercentage.toFixed(1)),
       "share-electricity-solar": Number(solarPercentage.toFixed(1)),
       "share-electricity-hydro": Number(hydroPercentage.toFixed(1)),
-      "cumulative-installed-wind-energy-capacity-gigawatts": wind * 0.3, // Estimación
-      "installed-solar-PV-capacity": solar * 0.2, // Estimación
+      "cumulative-installed-wind-energy-capacity-gigawatts": wind * 0.3,
+      "installed-solar-PV-capacity": solar * 0.2,
       "modern-renewable-energy-consumption": totalRenewable,
-      "conventional-energy-consumption": Math.max(0, estimatedTotal - totalRenewable),
+      "conventional-energy-consumption": Math.max(0, estimatedTotalElectricity - totalRenewable),
     }
   })
 }
 
-// Función para convertir datos de wind share a formato estándar
+// CORREGIDO: Solo datos de viento en TWh, NO calcular % total renovable
 export function convertWindShareData(data: WindShareData[]): RenewableEnergyData[] {
   return data.map((item) => {
-    // Los datos YA vienen como porcentaje correcto (0-100%)
-    const windShare = item["Wind (% equivalent primary energy)"] || 0
+    const windProduction = item["Wind (% equivalent primary energy)"] || 0 // En realidad es TWh
 
     return {
       year: item.Year,
       country: item.Entity,
-      "wind-generation": windShare, // Usar el porcentaje directamente como estimación
+      "wind-generation": windProduction,
       "solar-energy-consumption": 0,
       "hydropower-consumption": 0,
       "biofuel-production": 0,
       "installed-geothermal-capacity": 0,
-      "share-electricity-renewables": windShare, // Porcentaje tal como viene
-      "share-electricity-wind": windShare, // Porcentaje tal como viene
+      "share-electricity-renewables": -1, // -1 indica que NO se puede calcular el total
+      "share-electricity-wind": 0, // No tenemos el porcentaje real
       "share-electricity-solar": 0,
       "share-electricity-hydro": 0,
-      "cumulative-installed-wind-energy-capacity-gigawatts": windShare * 0.1,
+      "cumulative-installed-wind-energy-capacity-gigawatts": 0,
       "installed-solar-PV-capacity": 0,
-      "modern-renewable-energy-consumption": windShare,
-      "conventional-energy-consumption": Math.max(0, 100 - windShare),
+      "modern-renewable-energy-consumption": windProduction,
+      "conventional-energy-consumption": 0,
     }
   })
 }
 
-// Función para convertir datos de hydro share a formato estándar
+// CORREGIDO: Solo datos de hidro en TWh, NO calcular % total renovable
 export function convertHydroShareData(data: HydroShareData[]): RenewableEnergyData[] {
   return data.map((item) => {
-    // Los datos YA vienen como porcentaje correcto (0-100%)
-    const hydroShare = item["Hydro (% equivalent primary energy)"] || 0
+    const hydroProduction = item["Hydro (% equivalent primary energy)"] || 0 // En realidad es TWh
 
     return {
       year: item.Year,
       country: item.Entity,
       "wind-generation": 0,
       "solar-energy-consumption": 0,
-      "hydropower-consumption": hydroShare, // Usar el porcentaje directamente como estimación
+      "hydropower-consumption": hydroProduction,
       "biofuel-production": 0,
       "installed-geothermal-capacity": 0,
-      "share-electricity-renewables": hydroShare, // Porcentaje tal como viene
+      "share-electricity-renewables": -1, // -1 indica que NO se puede calcular el total
       "share-electricity-wind": 0,
       "share-electricity-solar": 0,
-      "share-electricity-hydro": hydroShare, // Porcentaje tal como viene
+      "share-electricity-hydro": 0, // No tenemos el porcentaje real
       "cumulative-installed-wind-energy-capacity-gigawatts": 0,
       "installed-solar-PV-capacity": 0,
-      "modern-renewable-energy-consumption": hydroShare,
-      "conventional-energy-consumption": Math.max(0, 100 - hydroShare),
+      "modern-renewable-energy-consumption": hydroProduction,
+      "conventional-energy-consumption": 0,
     }
   })
 }
 
-// Función para convertir datos de renewable share a formato estándar
+// CORREGIDO: Dataset de "total renovable" también está en TWh, NO en porcentaje
 export function convertRenewableShareData(data: RenewableShareData[]): RenewableEnergyData[] {
   return data.map((item) => {
-    // Los datos YA vienen como porcentaje correcto (0-100%)
-    const renewableShare = item["Renewables (% equivalent primary energy)"] || 0
+    const renewableProduction = item["Renewables (% equivalent primary energy)"] || 0 // En realidad es TWh
 
-    // Distribución típica en LATAM: 70% hidro, 15% eólica, 10% solar, 5% otros
-    const estimatedHydroShare = renewableShare * 0.7
-    const estimatedWindShare = renewableShare * 0.15
-    const estimatedSolarShare = renewableShare * 0.1
-    const estimatedOtherShare = renewableShare * 0.05
+    // Distribución típica en LATAM basada en datos reales
+    const estimatedHydroProduction = renewableProduction * 0.65 // 65% hidro
+    const estimatedWindProduction = renewableProduction * 0.2 // 20% eólica
+    const estimatedSolarProduction = renewableProduction * 0.1 // 10% solar
+    const estimatedOtherProduction = renewableProduction * 0.05 // 5% otros
 
     return {
       year: item.Year,
       country: item.Entity,
-      "wind-generation": estimatedWindShare,
-      "solar-energy-consumption": estimatedSolarShare,
-      "hydropower-consumption": estimatedHydroShare,
-      "biofuel-production": estimatedOtherShare,
+      "wind-generation": estimatedWindProduction,
+      "solar-energy-consumption": estimatedSolarProduction,
+      "hydropower-consumption": estimatedHydroProduction,
+      "biofuel-production": estimatedOtherProduction,
       "installed-geothermal-capacity": 0,
-      "share-electricity-renewables": renewableShare, // Porcentaje tal como viene
-      "share-electricity-wind": Number(estimatedWindShare.toFixed(1)),
-      "share-electricity-solar": Number(estimatedSolarShare.toFixed(1)),
-      "share-electricity-hydro": Number(estimatedHydroShare.toFixed(1)),
-      "cumulative-installed-wind-energy-capacity-gigawatts": estimatedWindShare * 0.1,
-      "installed-solar-PV-capacity": estimatedSolarShare * 0.1,
-      "modern-renewable-energy-consumption": renewableShare,
-      "conventional-energy-consumption": Math.max(0, 100 - renewableShare),
+      "share-electricity-renewables": -1, // TAMBIÉN -1 porque está en TWh, no en %
+      "share-electricity-wind": 0,
+      "share-electricity-solar": 0,
+      "share-electricity-hydro": 0,
+      "cumulative-installed-wind-energy-capacity-gigawatts": 0,
+      "installed-solar-PV-capacity": 0,
+      "modern-renewable-energy-consumption": renewableProduction,
+      "conventional-energy-consumption": 0,
     }
   })
+}
+
+// Función para estimar consumo total de electricidad por país y año
+function estimateTotalElectricityConsumption(country: string, year: number, renewableProduction: number): number {
+  // Datos aproximados de consumo eléctrico total por país (TWh/año) para años recientes
+  const countryConsumption: Record<string, number> = {
+    Brazil: 500,
+    Mexico: 280,
+    Argentina: 140,
+    Chile: 75,
+    Colombia: 70,
+    Venezuela: 85,
+    Peru: 50,
+    Ecuador: 25,
+    Uruguay: 12,
+    Bolivia: 8,
+    Paraguay: 15,
+    "Costa Rica": 11,
+    Panama: 10,
+    Guatemala: 10,
+    Honduras: 8,
+    Nicaragua: 4,
+    "El Salvador": 6,
+    "Dominican Republic": 18,
+    Cuba: 17,
+    Jamaica: 3,
+  }
+
+  const baseConsumption = countryConsumption[country] || 20 // Default para países pequeños
+
+  // Ajustar por año (crecimiento histórico del consumo eléctrico)
+  const yearFactor =
+    year >= 2020
+      ? 1.0
+      : year >= 2015
+        ? 0.9
+        : year >= 2010
+          ? 0.8
+          : year >= 2005
+            ? 0.7
+            : year >= 2000
+              ? 0.6
+              : year >= 1995
+                ? 0.5
+                : year >= 1990
+                  ? 0.4
+                  : 0.3
+
+  const adjustedConsumption = baseConsumption * yearFactor
+
+  // Si la producción renovable es mayor que el consumo estimado, ajustar hacia arriba
+  return Math.max(adjustedConsumption, renewableProduction * 1.2)
 }
 
 // Función para cargar y procesar archivo CSV

@@ -186,17 +186,22 @@ export default function DataTable({ data }: DataTableProps) {
                     <td className="px-4 py-3 text-right">{item["solar-energy-consumption"].toFixed(1)}</td>
                     <td className="px-4 py-3 text-right">{item["hydropower-consumption"].toFixed(1)}</td>
                     <td className="px-4 py-3 text-right">
-                      <span
-                        className={`px-2 py-1 rounded text-xs font-medium ${
-                          item["share-electricity-renewables"] > 50
-                            ? "bg-green-100 text-green-800"
-                            : item["share-electricity-renewables"] > 25
-                              ? "bg-yellow-100 text-yellow-800"
-                              : "bg-red-100 text-red-800"
-                        }`}
-                      >
-                        {item["share-electricity-renewables"].toFixed(1)}%
-                      </span>
+                      {/* CORREGIDO: Solo mostrar % si se puede calcular correctamente */}
+                      {item["share-electricity-renewables"] === -1 ? (
+                        <span className="px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600">N/A</span>
+                      ) : (
+                        <span
+                          className={`px-2 py-1 rounded text-xs font-medium ${
+                            item["share-electricity-renewables"] > 50
+                              ? "bg-green-100 text-green-800"
+                              : item["share-electricity-renewables"] > 25
+                                ? "bg-yellow-100 text-yellow-800"
+                                : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {item["share-electricity-renewables"].toFixed(1)}%
+                        </span>
+                      )}
                     </td>
                   </tr>
                 ))}

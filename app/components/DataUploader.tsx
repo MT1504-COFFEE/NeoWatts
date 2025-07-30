@@ -46,7 +46,7 @@ export default function DataUploader({ onDataLoad }: DataUploaderProps) {
 
         setMessage({
           type: "success",
-          text: `Archivo "${file?.name}" cargado exitosamente: ${data.length} registros procesados`,
+          text: `Archivo "${file?.name}" cargado exitosamente: ${data.length} registros procesados correctamente`,
         })
       } catch (error) {
         setMessage({
@@ -69,11 +69,7 @@ export default function DataUploader({ onDataLoad }: DataUploaderProps) {
             <span>📁</span>
             <span>Datasets de Energía Renovable</span>
           </CardTitle>
-          <CardDescription>Selecciona uno de los conjuntos de datos reales para comenzar el análisis
-            <br />
-            <br />
-            Los conjuntos de datos estaran disponibles en el apartado (Tabla de Datos) una vez que se carguen.
-          </CardDescription>
+          <CardDescription>Selecciona uno de los conjuntos de datos reales para comenzar el análisis</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Lista de archivos predefinidos */}
@@ -91,7 +87,7 @@ export default function DataUploader({ onDataLoad }: DataUploaderProps) {
                     <div className="flex items-center space-x-4">
                       <div className="flex-shrink-0">
                         <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-blue-100 text-blue-600">
-                          📊
+                          {file.id === "latam-renewable-production" ? "✅" : "📊"}
                         </div>
                       </div>
                       <div className="flex-1 min-w-0">
@@ -103,6 +99,9 @@ export default function DataUploader({ onDataLoad }: DataUploaderProps) {
                           </Badge>
                           <span className="text-xs text-gray-500">{file.size}</span>
                           <span className="text-xs text-gray-500">{file.records.toLocaleString()} registros</span>
+                          {file.id === "latam-renewable-production" && (
+                            <Badge className="text-xs bg-green-100 text-green-800">Para Calculadora</Badge>
+                          )}
                         </div>
                         {/* Schema preview */}
                         <div className="mt-2">
@@ -163,52 +162,75 @@ export default function DataUploader({ onDataLoad }: DataUploaderProps) {
             </Alert>
           )}
 
-          {/* Información de los datasets */}
+          {/* Información de los datasets - ACTUALIZADA COMPLETAMENTE */}
           <Card className="bg-blue-50 border-blue-200">
             <CardHeader>
-              <CardTitle className="text-lg text-blue-800">📋 Información de los Datasets</CardTitle>
+              <CardTitle className="text-lg text-blue-800">📋 Información de los Datasets (Corregida)</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-sm text-blue-700 space-y-3">
-                <div>
-                  <strong>Participación Solar LATAM:</strong>
-                  <p>
-                    Datos históricos del porcentaje de energía solar en el mix energético de países latinoamericanos.
-                    Incluye más de 8,500 registros con datos desde 1965 hasta 2022.
+                <div className="bg-green-100 border-l-4 border-green-500 p-3 rounded">
+                  <p className="font-semibold text-green-800">✅ Para la Calculadora:</p>
+                  <p className="text-green-700">
+                    Solo el dataset <strong>"Producción Renovable América Latina"</strong> funciona con la calculadora
+                    porque es el único que contiene porcentajes reales del mix energético nacional.
                   </p>
                 </div>
-                <div>
-                  <strong>Producción Renovable LATAM:</strong>
-                  <p>
-                    Producción de electricidad por fuente renovable (eólica, hidroeléctrica, solar, bioenergía) en
-                    países de América Latina. Más de 8,200 registros históricos.
+
+                <div className="bg-yellow-100 border-l-4 border-yellow-500 p-3 rounded">
+                  <p className="font-semibold text-yellow-800">⚠️ Aclaración importante:</p>
+                  <p className="text-yellow-700">
+                    Los datasets que dicen "Producción" en realidad contienen datos de producción en TWh, NO
+                    porcentajes. Solo "Producción Renovable América Latina" puede calcular porcentajes precisos.
                   </p>
                 </div>
+
                 <div>
-                  <strong>Participación Eólica LATAM:</strong>
+                  <strong>Producción Solar LATAM:</strong>
                   <p>
-                    Datos históricos del porcentaje de energía eólica en el mix energético de países latinoamericanos.
-                    Más de 5,800 registros.
+                    Datos de producción solar en TWh por país y año. No contiene porcentajes del mix energético, por lo
+                    que la calculadora mostrará "Dataset incompatible".
                   </p>
                 </div>
+
                 <div>
-                  <strong>Participación Hidroeléctrica LATAM:</strong>
+                  <strong>✅ Producción Renovable LATAM:</strong>
                   <p>
-                    Datos históricos del porcentaje de energía hidroeléctrica en el mix energético de países
-                    latinoamericanos. Más de 6,500 registros.
+                    <strong>ÚNICO dataset compatible con la calculadora.</strong> Contiene producción real de múltiples
+                    fuentes renovables (eólica, hidroeléctrica, solar, bioenergía) y puede calcular porcentajes precisos
+                    del mix energético nacional. Más de 8,200 registros históricos.
                   </p>
                 </div>
+
                 <div>
-                  <strong>Participación Total Renovable LATAM:</strong>
+                  <strong>Producción Eólica LATAM:</strong>
                   <p>
-                    Datos históricos del porcentaje total de energía renovable en el mix energético de países
-                    latinoamericanos. Más de 7,200 registros.
+                    Datos de producción eólica en TWh por país y año. No contiene porcentajes del mix energético, por lo
+                    que la calculadora mostrará "Dataset incompatible".
                   </p>
                 </div>
+
+                <div>
+                  <strong>Producción Hidroeléctrica LATAM:</strong>
+                  <p>
+                    Datos de producción hidroeléctrica en TWh por país y año. No contiene porcentajes del mix
+                    energético, por lo que la calculadora mostrará "Dataset incompatible".
+                  </p>
+                </div>
+
+                <div>
+                  <strong>Producción Total Renovable LATAM:</strong>
+                  <p>
+                    Datos de producción total renovable en TWh (suma de todas las fuentes). No contiene porcentajes del
+                    mix energético, por lo que la calculadora mostrará "Dataset incompatible".
+                  </p>
+                </div>
+
                 <div className="mt-4 p-3 bg-white rounded border-l-4 border-blue-500">
                   <p className="text-xs text-gray-600">
-                    <strong>Nota:</strong> Los datos se procesan automáticamente y se convierten al formato estándar
-                    para su análisis en la calculadora.
+                    <strong>Recomendación:</strong> Para usar todas las funciones del dashboard incluyendo la
+                    calculadora, utiliza el dataset <strong>"Producción Renovable América Latina"</strong> que es el más
+                    completo y el único que permite cálculos precisos de porcentajes renovables.
                   </p>
                 </div>
               </div>
