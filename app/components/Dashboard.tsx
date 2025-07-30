@@ -547,7 +547,7 @@ export default function Dashboard({ data }: DashboardProps) {
           <CardHeader>
             <CardTitle className="text-2xl">📊 Dashboard de Energía Renovable</CardTitle>
             <CardDescription className="text-green-100">
-              Cargando datos históricos desde 1965 hasta 2022 - América Latina
+              Cargando datos históricos desde 1965 hasta 2021 - América Latina
             </CardDescription>
           </CardHeader>
         </Card>
