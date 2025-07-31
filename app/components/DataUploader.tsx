@@ -199,14 +199,7 @@ export default function DataUploader({ onDataLoad }: DataUploaderProps) {
                 </p>
               </div>
 
-              {/* Alerta de aclaración */}
-              <div className="bg-yellow-100 border-l-4 border-yellow-500 p-3 rounded">
-                <p className="font-semibold text-yellow-800 text-sm md:text-base mb-1">⚠️ Aclaración importante:</p>
-                <p className="text-yellow-700 text-xs md:text-sm leading-relaxed">
-                  Los datasets que dicen "Producción" en realidad contienen datos de producción en TWh, NO porcentajes.
-                  Solo "Producción Renovable América Latina" puede calcular porcentajes precisos.
-                </p>
-              </div>
+              
 
               {/* Descripciones detalladas - Colapsables en móvil */}
               <div className="space-y-2 md:space-y-3">
