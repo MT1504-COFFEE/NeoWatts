@@ -69,7 +69,7 @@ export default function DataUploader({ onDataLoad }: DataUploaderProps) {
             <span>Datasets de Energía Renovable</span>
           </CardTitle>
           <CardDescription className="text-sm md:text-base">
-            Selecciona uno de los conjuntos de datos reales para comenzar el análisis
+            Selecciona uno de los conjuntos de datos reales para comenzar el análisis, estos archivos se mostraran en el apartado Tabla de Datos.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 md:space-y-6">

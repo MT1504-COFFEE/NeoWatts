@@ -254,11 +254,11 @@ export default function SolarInfoSection() {
               Juan Camilo Gonzales, Juan Esteban Galvis, Manuela López, Stefany Restrepo
             </span>{" "}
             y <span className="font-bold text-white">Mathius Lozano</span>, (Informacion sacada de los archivos dados y informacion consultada
-            de: <a href="https://datos.bancomundial.org/indicador/EG.ELC.RNEW.ZS">Energía renovable (Banco Mundial)</a>
+            de: <a href="https://datos.bancomundial.org/indicador/EG.ELC.RNEW.ZS">Energía renovable (<u>Banco Mundial</u>)</a>
             <a href="https://www.mapfreglobalrisks.com/gerencia-riesgos-seguros/articulos/energias-renovables-tendencias-en-latinoamerica/">
               {" "}
-              - Tendencias en Latinoamérica (Energias renovables)
-            </a>
+              - <u>Tendencias en Latinoamérica (Energias renovables)</u>
+            </a> <a href="https://github.com/MT1504-COFFEE/NeoWatts"><u>GITHUB NeoWatts</u></a>
             ).
           </p>
         </CardContent>
